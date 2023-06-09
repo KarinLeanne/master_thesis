@@ -3,6 +3,7 @@ from random import random, randint
 import networkx as nx
 import numpy as np
 from math import exp
+import scipy as sp
 from mesa import Agent
 
 import Game
@@ -22,6 +23,7 @@ class GameAgent(Agent):
         self.eta_base = self.eta        # eta_base is the default risk aversion parameter
         self.alpha = 0.5                # alpha is the homophilic parameter
         self.beta = 0.1                 # beta controls homophily together with alpha
+        self.p_rewiring = 0.7
         self.totPayoff = 0              # totPayoff is the (starting) total payoff 
         self.model = model
         self.paidoff = [model.game_list[self.unique_id]]
@@ -29,64 +31,72 @@ class GameAgent(Agent):
         self.neighChoice = list(model.graph.neighbors(id))
         self.edges = list(model.graph.edges)
 
-
-
-
         self.full_graph = model.graph
         self.nNeigbors = len(self.neighChoice)
         self.posiVals = [15, 6]
 
-    def rewire(self, alpha, beta):
 
+    def get_rewiring_prob(self, neighbors, alpha, beta):
+        payoff_diff = []
+        for neighbor in neighbors:
+            second_neigh_pay = self.model.schedule.agents[neighbor]
+            payoff_diff.append(np.abs(self.totPayoff - second_neigh_pay.totPayoff))
+        pay_diff = np.array(payoff_diff)
+        
+        # limit pay_diff to 600 such that exp(600) does not overflow
+        limit = 600
+        pay_diff[(alpha*(pay_diff-beta)) > limit] = limit
+
+        # Use softmax to get probabilities
+        softmax = lambda x :  np.exp(x)/sum(np.exp(x))
+        P_con = softmax(alpha*(pay_diff-beta))
+
+        return P_con
+
+
+    def rewire(self, alpha, beta, p_rewiring):
+
+        # Add all neighbours to a list
         neighbors = list(self.model.graph.neighbors(self.unique_id))
+
+        # Only rewire if there are neighbours
         if neighbors:
-            d_edge = self.random.choice(neighbors)
-            
-            subgraph1 = nx.ego_graph(self.model.graph, 0 ,radius=2)
-            subgraph2 = nx.ego_graph(self.model.graph, 0 ,radius=1)
-            subgraph1.remove_nodes_from(subgraph2.nodes())
-            second_order_neighbors= list(subgraph1.nodes())
 
-            # probability of rewiring is proportional to total payoff difference (homophily)
-            if second_order_neighbors:
-                payoff_diff = []
-                for second_neighbor in second_order_neighbors:
-                    second_neigh_pay = self.model.schedule.agents[second_neighbor]
-                    payoff_diff.append(np.abs(self.totPayoff - second_neigh_pay.totPayoff))
-                pay_diff = np.array(payoff_diff)
-                
-                # limit pay_diff to 600 such that exp(600) does not overflow
-                limit = 600
-                pay_diff[(alpha*(pay_diff-beta)) > limit] = limit
+            # Only possible to rewire to second-order neighbours that are not also first-order neighbours
+            subgraph0 = nx.ego_graph(self.model.graph, self.unique_id ,radius=0)
+            subgraph1 = nx.ego_graph(self.model.graph, self.unique_id ,radius=1)
+            subgraph2 = nx.ego_graph(self.model.graph, self.unique_id ,radius=2)
 
-                P_con = 1/(1+np.exp(alpha*(pay_diff-beta)))
-                P_con = np.nan_to_num(P_con)
-                if sum(P_con) == 0:
-                    P_con = P_con + 1/len(P_con)                 
-                # Calculate the sum of P_con
-                total_prob = sum(P_con)
+            subgraph1.remove_nodes_from(subgraph0.nodes())
+            first_order_neighbors = list(subgraph1.nodes())
 
-                # Check if the sum of P_con is close enough to 1 within a certain tolerance
-                if not np.isclose(total_prob, 1, rtol=1e-9, atol=1e-9):
-                    # Adjust P_con by dividing it by the sum of its elements and adding the remaining difference to one of the probabilities
-                    P_con = P_con / total_prob
-                    P_con[-1] += 1 - sum(P_con)
+            subgraph2.remove_nodes_from(subgraph0.nodes())
+            subgraph2.remove_nodes_from(subgraph1.nodes())
+            second_order_neighbors = list(subgraph2.nodes())
 
-                # Normalize P_con by dividing it by the sum of its elements
-                P_con = P_con / sum(P_con)
+            # Try to rewire with certain probability
+            if np.random.uniform() < p_rewiring:
 
+                # rewiring prob of each second order neighbour is proportional to total payoff difference (homophily)
+                if second_order_neighbors:
+                    P_con = self.get_rewiring_prob(second_order_neighbors, alpha, beta)
 
+                    # Make choice from second-order neighbours based on probability
+                    add_neighbor = np.random.choice(second_order_neighbors, p=P_con)
+                    self.model.graph.add_edge(self.unique_id, add_neighbor)
 
-                add_neighbor = np.random.choice(second_order_neighbors, p=P_con)
-                self.model.graph.add_edge(self.unique_id, add_neighbor)
+            # Try to remove a connection with certain prob
+            if np.random.uniform() < p_rewiring:        
+
+                # Only remove a neighbour if there is more then one neighbour
+                if len(first_order_neighbors) > 1:
+                    P_con = self.get_rewiring_prob(first_order_neighbors, alpha, beta)
+
+                    # Make choice from first-order neighbours based on probability
+                    remove_neighbor = np.random.choice(first_order_neighbors, p=P_con)
+                    self.model.graph.remove_edge(self.unique_id, remove_neighbor)
 
 
-
-            del_neigh_pay = self.model.schedule.agents[d_edge]
-            if self.model.graph.has_edge(self.unique_id, d_edge) and self.totPayoff > del_neigh_pay.totPayoff:
-                    if self.model.graph.degree(self.unique_id) > 1:
-                        if self.model.graph.degree(d_edge) > 1:
-                            self.model.graph.remove_edge(self.unique_id, d_edge)
               
 
     def getPlayerChance0(self, other_agent, game):
@@ -150,15 +160,12 @@ class GameAgent(Agent):
         # The player choices are made.
         _, P0chance0, ownGameMean = self.playerStrat(other_agent)
         P1game, P1chance0, otherGameMean = other_agent.playerStrat(self)
-
-
         
         # The game played is depending on the risk aversion of the other player.
         if P1game:
             game = Game.Game(self.paidoff[0], self.paidoff[0])
         if not P1game:
             game = Game.Game(other_agent.paidoff[0], other_agent.paidoff[0])
-
 
         P0choice = 0 if random() < P0chance0 else 1
         P1choice = 0 if random() < P1chance0 else 1
@@ -185,5 +192,5 @@ class GameAgent(Agent):
         if rand.random() < 0.01:
             self.eta = rand.random()*2
 
-
-        self.rewire(self.alpha, self.beta)
+        
+        self.rewire(self.alpha, self.beta, self.p_rewiring)

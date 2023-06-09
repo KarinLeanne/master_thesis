@@ -18,7 +18,6 @@ class GamesModel(Model):
         self.alwaysSafe = alwaysSafe
 
         # Generate the network.
-
         if network[0] == 'RR':
             if network[1]%2:
                 network[1] -= 1 
@@ -43,7 +42,6 @@ class GamesModel(Model):
                 game_l[i] = [[1,UV[1]],[UV[2],0]]
             self.game_list = game_l
             
-        
 
         # Create agents.
         for node in self.graph:
@@ -52,18 +50,30 @@ class GamesModel(Model):
 
         # Collect model timestep data.
         self.datacollector = DataCollector(
-            model_reporters={"Degree Distribution": self.compute_degdis, "Game Distribution" : "game_list"},
-            agent_reporters={"playerPayoff": "totPayoff","player risk aversion": "eta"}
+            #model_reporters={"Mean Degree" : self.get_mean_degree, "Var of Degree" : self.get_variance_degree, "Avg Clustering" : self.get_clustering_coef, "Game Distribution" : "game_list"},
+            model_reporters={"Mean Degree" : self.get_mean_degree, "Var of Degree" : self.get_variance_degree, "Avg Clustering" : self.get_clustering_coef},
+            agent_reporters={"playerPayoff": "totPayoff","Player risk aversion": "eta"}
         )
 
-    def compute_degdis(model):
-        deg_array = list(dict(model.graph.degree()).values())
-
-        return (deg_array)
+    
+    def get_mean_degree(self):
+        total_degree = sum([x[1] for x in self.graph.degree()])
+        return (total_degree / self.graph.number_of_nodes())
+    
+    def get_variance_degree(self):
+        degree_list = [x[1] for x in self.graph.degree()]
+        mean = self.get_mean_degree()
+        return sum((i - mean) ** 2 for i in degree_list) / len(degree_list)
+    
+    def get_clustering_coef(self):
+        return nx.average_clustering(self.graph)
+    
+    def get_avg_path_length(self):
+        return nx.average_shortest_path_length(self.graph)
 
     def step(self):
-        self.datacollector.collect(self)
         self.schedule.step()
+        self.datacollector.collect(self)
         #print(self.game_list)
         #print(list(dict(self.graph.degree()).values()))
         #self.graph = self.update_network()
