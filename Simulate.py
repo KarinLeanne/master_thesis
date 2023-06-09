@@ -23,7 +23,7 @@ def gini_new(array):
 
     return ((np.sum((2 * index - n  - 1) * array)) / (n * np.sum(array))) 
 
-def simulate(N, rounds, steps, netRat = 0.1, partScaleFree = 1, alwaysSafe = False, UV=(True,None,None), network=('RR',4,1)):
+def simulate(rewiring_p, alpha, beta, N, rounds, steps, netRat = 0.1, partScaleFree = 1, alwaysSafe = False, UV=(True,None,None), network=('RR',4,1)):
 
     #agent_data = pd.DataFrame()
     network_data = pd.DataFrame(columns=['Round'])
@@ -31,7 +31,7 @@ def simulate(N, rounds, steps, netRat = 0.1, partScaleFree = 1, alwaysSafe = Fal
 
     for round in range(rounds):
         print("round", round)
-        model = gm.GamesModel(N, netRat, partScaleFree, alwaysSafe,UV,network)
+        model = gm.GamesModel(N, alpha, beta, netRat, partScaleFree, alwaysSafe,UV,network)
         # Step through the simulation.
         for _ in range(steps):
             model.step()

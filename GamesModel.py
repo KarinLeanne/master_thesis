@@ -10,7 +10,7 @@ import GameAgent as ga
 class GamesModel(Model):
     'The model that will simulate economic games in a network.'
 
-    def __init__(self, N, netRat = 0.1, partScaleFree = 0, alwaysSafe = False, UV = (True, None, None), network = ('RR', 4, 2)):
+    def __init__(self, N, netRat = 0.1, partScaleFree = 0, alwaysSafe = False, UV = (True, None, None), network = ('RR', 4, 2), rewiring_p = 0.7):
         self.num_agents = N
         self.schedule = RandomActivation(self)
         self.netRat = netRat
@@ -45,7 +45,7 @@ class GamesModel(Model):
 
         # Create agents.
         for node in self.graph:
-            agent = ga.GameAgent(node, self)
+            agent = ga.GameAgent(node, self, rewiring_p = rewiring_p)
             self.schedule.add(agent)
 
         # Collect model timestep data.

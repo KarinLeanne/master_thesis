@@ -126,6 +126,33 @@ def measures_over_timesteps(df):
     plt.show()
 
 
+def effect_rewiring_prob_network_measures(df):
+
+    # Get steps, used networks and used measures from dataframe
+    print(df.columns)
+    steps = np.arange(df['Step'].nunique())
+    networks = df['Network'].unique()
+    rewiring_probs = df['Rewiring p'].unique()
+
+    fig, axs = plt.subplots(len(networks))
+
+    for row in range(len(networks)):
+        df_network = df[df['Network'] == networks[row]]
+
+        for rewiring_p in rewiring_probs:
+            means = df_network[df_network['Rewiring p'] == rewiring_p]
+            #print(tabulate(means, headers = 'keys', tablefmt = 'psql'))
+            axs[row].plot(means["Mean Degree"], steps)
+
+    plt.show()
+
+                    
+
+
+
+        
+
+
 
 
 

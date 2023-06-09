@@ -15,15 +15,15 @@ P1 = DOWN = RIGHT = SAFE = 1
 class GameAgent(Agent):
     'The agent that will play economic games.'
 
-    def __init__(self, id, model):
+    def __init__(self, id, model, rewiring_p, alpha, beta):
         super().__init__(id, model)
         self.neighbors = list(model.graph.neighbors(id))
         self.rationality = model.netRat * model.ratFunct(len(self.neighbors)) # rationality is the rationality of the agent
         self.eta = rand.random()*2      # eta is the risk aversion parameter
         self.eta_base = self.eta        # eta_base is the default risk aversion parameter
-        self.alpha = 0.5                # alpha is the homophilic parameter
-        self.beta = 0.1                 # beta controls homophily together with alpha
-        self.p_rewiring = 0.7
+        self.alpha = alpha              # alpha is the homophilic parameter
+        self.beta = beta                # beta controls homophily together with alpha
+        self.p_rewiring = rewiring_p
         self.totPayoff = 0              # totPayoff is the (starting) total payoff 
         self.model = model
         self.paidoff = [model.game_list[self.unique_id]]
@@ -54,13 +54,13 @@ class GameAgent(Agent):
         return P_con
 
 
-    def rewire(self, alpha, beta, p_rewiring):
+    def rewire(self, alpha, beta, rewiring_p):
 
         # Add all neighbours to a list
         neighbors = list(self.model.graph.neighbors(self.unique_id))
 
-        # Only rewire if there are neighbours
-        if neighbors:
+        # Only rewire if there are neighbours and Try to rewire with certain probability
+        if neighbors and np.random.uniform() < rewiring_p:
 
             # Only possible to rewire to second-order neighbours that are not also first-order neighbours
             subgraph0 = nx.ego_graph(self.model.graph, self.unique_id ,radius=0)
@@ -74,27 +74,24 @@ class GameAgent(Agent):
             subgraph2.remove_nodes_from(subgraph1.nodes())
             second_order_neighbors = list(subgraph2.nodes())
 
-            # Try to rewire with certain probability
-            if np.random.uniform() < p_rewiring:
 
-                # rewiring prob of each second order neighbour is proportional to total payoff difference (homophily)
-                if second_order_neighbors:
-                    P_con = self.get_rewiring_prob(second_order_neighbors, alpha, beta)
+            # rewiring prob of each second order neighbour is proportional to total payoff difference (homophily)
+            if second_order_neighbors:
+                P_con = self.get_rewiring_prob(second_order_neighbors, alpha, beta)
 
-                    # Make choice from second-order neighbours based on probability
-                    add_neighbor = np.random.choice(second_order_neighbors, p=P_con)
-                    self.model.graph.add_edge(self.unique_id, add_neighbor)
+                # Make choice from second-order neighbours based on probability
+                add_neighbor = np.random.choice(second_order_neighbors, p=P_con)
+                self.model.graph.add_edge(self.unique_id, add_neighbor)
 
-            # Try to remove a connection with certain prob
-            if np.random.uniform() < p_rewiring:        
+        # Try to remove a connection with certain prob + Only remove a neighbour if there is more then one neighbour
+        if np.random.uniform() < rewiring_p and len(first_order_neighbors) > 1:        
 
-                # Only remove a neighbour if there is more then one neighbour
-                if len(first_order_neighbors) > 1:
-                    P_con = self.get_rewiring_prob(first_order_neighbors, alpha, beta)
 
-                    # Make choice from first-order neighbours based on probability
-                    remove_neighbor = np.random.choice(first_order_neighbors, p=P_con)
-                    self.model.graph.remove_edge(self.unique_id, remove_neighbor)
+            P_con = self.get_rewiring_prob(first_order_neighbors, alpha, beta)
+
+            # Make choice from first-order neighbours based on probability
+            remove_neighbor = np.random.choice(first_order_neighbors, p=P_con)
+            self.model.graph.remove_edge(self.unique_id, remove_neighbor)
 
 
               
