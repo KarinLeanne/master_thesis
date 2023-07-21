@@ -10,14 +10,17 @@ import GameAgent as ga
 class GamesModel(Model):
     'The model that will simulate economic games in a network.'
 
-    def __init__(self, N, netRat = 0.1, partScaleFree = 0, alwaysSafe = False, UV = (True, None, None), network = ('RR', 4, 2), rewiring_p = 0.7):
+    def __init__(self, N, rewiring_p, alpha, beta, network, netRat = 0.1, partScaleFree = 0, alwaysSafe = False, UV = (True, None, None)):
         self.num_agents = N
         self.schedule = RandomActivation(self)
         self.netRat = netRat
         self.ratFunct = lambda f : f**2
         self.alwaysSafe = alwaysSafe
 
+        
+
         # Generate the network.
+
         if network[0] == 'RR':
             if network[1]%2:
                 network[1] -= 1 
@@ -26,6 +29,7 @@ class GamesModel(Model):
             self.graph = nx.watts_strogatz_graph(N, network[1], network[2])
         if network[0] == 'HK':
             self.graph = nx.powerlaw_cluster_graph(N,int(network[1]/2), network[2])
+
 
         #//FIXME: this should be  a fixed seed network
 
@@ -45,14 +49,14 @@ class GamesModel(Model):
 
         # Create agents.
         for node in self.graph:
-            agent = ga.GameAgent(node, self, rewiring_p = rewiring_p)
+            agent = ga.GameAgent(node, self, rewiring_p, alpha, beta)
             self.schedule.add(agent)
 
         # Collect model timestep data.
         self.datacollector = DataCollector(
             #model_reporters={"Mean Degree" : self.get_mean_degree, "Var of Degree" : self.get_variance_degree, "Avg Clustering" : self.get_clustering_coef, "Game Distribution" : "game_list"},
-            model_reporters={"Mean Degree" : self.get_mean_degree, "Var of Degree" : self.get_variance_degree, "Avg Clustering" : self.get_clustering_coef},
-            agent_reporters={"playerPayoff": "totPayoff","Player risk aversion": "eta"}
+            model_reporters={"M: Mean Degree" : self.get_mean_degree, "M: Var of Degree" : self.get_variance_degree, "M: Avg Clustering" : self.get_clustering_coef},
+            agent_reporters={"playerPayoff": "totPayoff","Player risk aversion": "eta", "removedEdges": "removed_edges"}
         )
 
     
