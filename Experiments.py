@@ -34,6 +34,7 @@ def mean_measures_per_timestep(p_rewiring, alpha, beta, measures_of_interest = [
         df_data_mean_std[f"STD:{measure.replace('M:', '')}"] = df_model_full.groupby(["Step", "Network"])[measure].std().reset_index()[measure]
 
     #print(tabulate(df_data_mean_std, headers = 'keys', tablefmt = 'psql'))
+    df_data_mean_std.to_excel(f"data/df_measures_over_timesteps_{params.n_steps}_{params.n_agents}_{params.n_rounds}.xlsx", index=False)
     return df_data_mean_std
 
 
@@ -50,7 +51,9 @@ def effect_of_rewiring_p_on_variance_and_clustering(alpha, beta):
 
     #print(tabulate(df_rewiring_p, headers = 'keys', tablefmt = 'psql'))
 
-    return df_rewiring_p
+    df_rewiring_p.to_excel(f"data/df_influence_rewiring_prob_{params.n_steps}_{params.n_agents}_{params.n_rounds}.xlsx", index=False)
+
+
 
 
 def effect_of_triangle_prob_on_variance_and_clustering(rewiring_p, alpha, beta):
@@ -64,7 +67,8 @@ def effect_of_triangle_prob_on_variance_and_clustering(rewiring_p, alpha, beta):
         df['triangle_p'] = triangle_p
         # Add partial data to the network that needsa to contain the full data
         df_triangle_prob = pd.concat([df_triangle_prob, df])
-    return df_triangle_prob
+    
+    df_triangle_prob.to_excel(f"data/df_influence_triangle_prob_{params.n_steps}_{params.n_agents}_{params.n_rounds}.xlsx", index=False)
         
 
 def effect_of_alpha_beta_on_variance_and_clustering(rewiring_p, alpha, beta):
@@ -89,7 +93,8 @@ def effect_of_alpha_beta_on_variance_and_clustering(rewiring_p, alpha, beta):
         # Add partial data to the network that needsa to contain the full data
         df_beta = pd.concat([df_beta, df])
 
-    return df_alpha, df_beta
+    df_alpha.to_excel(f"data/df_influence_alpha_{params.n_steps}_{params.n_agents}_{params.n_rounds}.xlsx", index=False)
+    df_beta.to_excel(f"data/df_influence_beta_{params.n_steps}_{params.n_agents}_{params.n_rounds}.xlsx", index=False)
 
 
         

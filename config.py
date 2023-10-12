@@ -1,6 +1,6 @@
-n_steps = 100
-n_agents = 200
-n_rounds = 10
+n_steps = 50
+n_agents = 20
+n_rounds = 5
 
 p_rewiring = 0.6            # Has to be between 0 and 1
 alpha = 0.5                # alpha is the homophilic parameter

@@ -8,15 +8,17 @@ P1 = DOWN = RIGHT = SAFE = 1
 class Game:
     def __init__(self, payoff0 = None, payoff1 = None,
                                        payoffs = [[(1, 3),(0, 5)],
-                                                  [(5, 0),(1, 1)]]):
+                                                  [(5, 0),(3, 1)]]):
+        
         '''If no payoff matrix is given, the prisoners dilemma is chosen.
         Can also create a game from the payoffs of two players.'''
-
+        
         if payoff0 != None:
             payoffs = [list(zip(payoff0[LEFT], payoff1[LEFT])) ,
                        list(zip(payoff0[RIGHT], payoff1[RIGHT]))]
 
         self.payoffs = payoffs
+        
 
 
     def playGame(self, choiceP0, choiceP1):
@@ -35,13 +37,17 @@ class Game:
         else:
             a = 1
 
+        print(self.payoffs)    
+
         firstCell = self.payoffs[UP][LEFT][player]
         secondCell = self.payoffs[UP + a][LEFT + b][player]
         thirdCell = self.payoffs[DOWN - a][RIGHT - b][player]
         fourthCell = self.payoffs[DOWN][RIGHT][player]
 
-        return (firstCell, secondCell, thirdCell, fourthCell)
+        print("player", player)
+        print(firstCell, secondCell, thirdCell, fourthCell)
 
+        return (firstCell, secondCell, thirdCell, fourthCell)
 
 
     def GetQreChance(self, player, rationality1, rationality2):
@@ -79,8 +85,6 @@ class Game:
 
 
         return (x,y)
-
-
 
 
     def getUtilityMean(self, player, chance2, chance0,  eta):

@@ -16,6 +16,7 @@ params = utils.get_config()
 
 def viz_UV(UV_space):
     #\\FIXME Most likely some recording of the UV space is incorrect as there is no dynamic change in the UV space 
+    
     t=0
     df = pd.DataFrame(UV_space[0][t], columns=['U'])
     df['V'] = UV_space[1][t]
@@ -97,15 +98,23 @@ def network_measures_over_timesteps(df):
     measures = list(df.columns)[2:]
     mean_measures = list(df.loc[:, df.columns.str.contains('M:')].columns)
 
+
     fig, axs = plt.subplots(len(networks), len(mean_measures), sharex='col', sharey='row')
+
 
     # Make plot per measure and networktype
     for row in range((len(networks))):
+
+        
         for col in range(len(mean_measures)):
             mean = df.loc[df['Network'] == networks[row]][measures[col]]
             std = df.loc[df['Network'] == networks[row]][measures[col+len(mean_measures)]]
-            axs[col, row].plot(steps, mean)
-            axs[col, row].fill_between(steps, mean+2*std, mean-2*std, alpha = 0.2)
+
+            
+            
+
+            axs[row, col].plot(steps, mean)
+            axs[row, col].fill_between(steps, mean+2*std, mean-2*std, alpha = 0.2)
 
     # Set common x label
     fig.text(0.5, 0.04, 'Step', ha='center')
@@ -120,7 +129,7 @@ def network_measures_over_timesteps(df):
 
     fig.suptitle("Network measures over time")
     
-    plt.savefig('plots/chap1/network_measures_over_time.png')
+    plt.savefig(f"plots/chap1/network_measures_over_time__{params.n_steps}_{params.n_agents}_{params.n_rounds}.png")
 
 
 def effect_variable_on_network_measures(df, variable):
@@ -165,7 +174,7 @@ def effect_variable_on_network_measures(df, variable):
 
         # displaying the title
         fig.suptitle(f"Effect of {variable} on {measure.replace('M:', '')}")
-        plt.savefig(f"plots/chap1/Effect of {variable} on {measure.replace('M:', '')}.png")
+        plt.savefig(f"plots/chap1/Effect_of_{variable}_on_{measure.replace('M:', '')}_{params.n_steps}_{params.n_agents}_{params.n_rounds}.png")
 
                     
 

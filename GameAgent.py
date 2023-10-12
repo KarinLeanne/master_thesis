@@ -19,7 +19,7 @@ class GameAgent(Agent):
         super().__init__(id, model)
         self.neighbors = list(model.graph.neighbors(id))
         self.rationality = model.netRat * model.ratFunct(len(self.neighbors)) # rationality is the rationality of the agent
-        self.eta = rand.random()*2      # eta is the risk aversion parameter
+        self.eta = np.random.rand()*2      # eta is the risk aversion parameter
         self.eta_base = self.eta        # eta_base is the default risk aversion parameter
         self.alpha = alpha              # alpha is the homophilic parameter
         self.beta = beta                # beta controls homophily together with alpha
@@ -129,13 +129,7 @@ class GameAgent(Agent):
                 self.added_edges[0] += 1
             else:
                 self.removed_edges[1] += 1
-            
-            
-
-
-           
-
-              
+        
 
     def getPlayerChance0(self, other_agent, game):
         '''This returns the strategy of the player based on his own,

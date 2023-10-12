@@ -16,7 +16,7 @@ class GamesModel(Model):
         self.netRat = netRat
         self.ratFunct = lambda f : f**2
         self.alwaysSafe = alwaysSafe
-
+        self.game_list = [None]*N
         
 
         # Generate the network.
@@ -28,10 +28,12 @@ class GamesModel(Model):
         if network[0] == 'WS':
             self.graph = nx.watts_strogatz_graph(N, network[1], network[2])
         if network[0] == 'HK':
-            self.graph = nx.powerlaw_cluster_graph(N,int(network[1]/2), network[2])
+            self.graph = nx.powerlaw_cluster_graph(N, int(network[1]/2), network[2])
 
 
-        #//FIXME: this should be  a fixed seed network
+        #//FIXME: this should be  a fixed seed network'
+        #save mean degree of network
+        self.initial_mean_degree = self.get_mean_degree()
 
 
         if UV[0]:
@@ -48,6 +50,7 @@ class GamesModel(Model):
             
 
         # Create agents.
+
         for node in self.graph:
             agent = ga.GameAgent(node, self, rewiring_p, alpha, beta)
             self.schedule.add(agent)
@@ -55,7 +58,7 @@ class GamesModel(Model):
         # Collect model timestep data.
         self.datacollector = DataCollector(
             #model_reporters={"Mean Degree" : self.get_mean_degree, "Var of Degree" : self.get_variance_degree, "Avg Clustering" : self.get_clustering_coef, "Game Distribution" : "game_list"},
-            model_reporters={"M: Mean Degree" : self.get_mean_degree, "M: Var of Degree" : self.get_variance_degree, "M: Avg Clustering" : self.get_clustering_coef},
+            model_reporters={"M: Mean Degree" : self.get_mean_degree, "M: Var of Degree" : self.get_variance_degree, "M: Avg Clustering" : self.get_clustering_coef, "Game Distribution" : "game_list"},
             agent_reporters={"playerPayoff": "totPayoff","Player risk aversion": "eta", "removedEdges": "removed_edges"}
         )
 
@@ -74,6 +77,12 @@ class GamesModel(Model):
     
     def get_avg_path_length(self):
         return nx.average_shortest_path_length(self.graph)
+    
+
+    def get_game_list(self):
+        uv_positions = [(game[0][1], game[1][0]) for game in self.game_list]
+        return uv_positions
+
 
     def step(self):
         self.schedule.step()
