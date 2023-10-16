@@ -1,4 +1,4 @@
-import Simulate_old as sim
+import old_code.Simulate_old as sim
 import Vizualize as viz
 
 N_STEPS = 10

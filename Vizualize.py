@@ -14,6 +14,26 @@ import old_code.Simulate_old as sim
 
 params = utils.get_config()
 
+
+def viz_UV(network_data):
+    for step in np.arange(params.n_steps):
+        df = network_data.loc[network_data['Step'] == step]
+
+
+        #print(tabulate(df, headers = 'keys', tablefmt = 'psql'))
+        x = [item[0] for row in df['Game Distribution'] for item in row]
+        y = [item[1] for row in df['Game Distribution'] for item in row]
+
+        print(len(x), len(y))
+
+        ax = plt.subplot()
+        ax.scatter(x, y)
+        ax.set_xlabel("U")
+        ax.set_ylabel("V")
+        plt.show()
+
+
+"""
 def viz_UV(UV_space):
     #\\FIXME Most likely some recording of the UV space is incorrect as there is no dynamic change in the UV space 
     
@@ -25,6 +45,7 @@ def viz_UV(UV_space):
     fig = px.density_contour(df, x="U", y="V", marginal_x="histogram", marginal_y="histogram")
     #fig.update_traces(contours_coloring="fill", contours_showlabels = True)
     fig.show()
+"""
 
 def viz_deg_distr(G):
 

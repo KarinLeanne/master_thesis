@@ -27,7 +27,7 @@ class GameAgent(Agent):
         self.totPayoff = 0              # totPayoff is the (starting) total payoff 
 
         self.model = model
-        self.paidoff = [model.game_list[self.unique_id]]
+        self.paidoff = model.game_list[self.unique_id]
 
         self.neighChoice = list(model.graph.neighbors(id))
         self.edges = list(model.graph.edges)
@@ -162,12 +162,13 @@ class GameAgent(Agent):
         'Returns the preffered game type and the strategy.'
         
         # Calculating the own game values.
-        gameRisk = Game.Game(self.paidoff[0], self.paidoff[0])
+        # TODO gamerisk???
+        gameRisk = Game.Game(self.paidoff)
         riskChance0, chance2 = self.getPlayerChance0(other_agent, gameRisk)
         riskGameMean = gameRisk.getUtilityMean(0, chance2, riskChance0, self.eta)
 
         # Calculating the safe game values.
-        gameSafe = Game.Game(other_agent.paidoff[0], other_agent.paidoff[0])
+        gameSafe = Game.Game(other_agent.paidoff)
         safeChance0, chance2= self.getPlayerChance0(other_agent, gameSafe)
         safeGameMean = gameSafe.getUtilityMean(0, chance2, safeChance0, self.eta)
 
@@ -195,9 +196,11 @@ class GameAgent(Agent):
         
         # The game played is depending on the risk aversion of the other player.
         if P1game:
-            game = Game.Game(self.paidoff[0], self.paidoff[0])
+            #print("paidoff1", self.paidoff)
+            game = Game.Game(self.paidoff)
         if not P1game:
-            game = Game.Game(other_agent.paidoff[0], other_agent.paidoff[0])
+            game = Game.Game(other_agent.paidoff)
+            #print("paidoff2", other_agent.paidoff)
 
         P0choice = 0 if random() < P0chance0 else 1
         P1choice = 0 if random() < P1chance0 else 1
@@ -211,12 +214,12 @@ class GameAgent(Agent):
 
         #player adjust their game depending on earnings 
         #//FIXME: replicator dynamics for game adoption and risk preference with probability proportional to payoff!
-        if self.totPayoff < other_agent.totPayoff and self.paidoff[0] <= other_agent.paidoff[0]:
+        if self.totPayoff < other_agent.totPayoff and self.paidoff <= other_agent.paidoff:
             self.eta = (other_agent.eta+self.eta)/2
 
         if (ownGameMean < payoff0) and (self.totPayoff < other_agent.totPayoff):
             self.model.game_list[self.unique_id] = self.model.game_list[other_agent.unique_id]
-            self.paidoff = [self.model.game_list[other_agent.unique_id]]
+            self.paidoff = self.model.game_list[other_agent.unique_id]
             self.eta = other_agent.eta
             #self.eta = self.eta_base
 

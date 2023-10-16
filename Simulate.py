@@ -44,10 +44,13 @@ def simulate(N, p_rewiring, alpha, beta, network, rounds, steps, netRat = 0.1, p
         agent_data['Round'] = agent_data['Round'].fillna(round)
         network_data = pd.concat([network_data, model.datacollector.get_model_vars_dataframe()])
         network_data['Round'] = network_data['Round'].fillna(round)
+    
+    network_data = network_data.reset_index(drop=False, names="Step")
 
-    network_data.index.name = 'Step'
     return network_data, agent_data
 
+
+"""
 def simulateANDdegree(N,  p_rewiring, alpha, beta, network, rounds, steps, netRat = 0.1, partScaleFree = 1, alwaysSafe = False, UV=(True,None,None)):
     '''This function runs the model for given parameters and returns degree distribution and UV space population'''
     network_data = pd.DataFrame(columns=['Round'])
@@ -61,11 +64,7 @@ def simulateANDdegree(N,  p_rewiring, alpha, beta, network, rounds, steps, netRa
 
         network_data = pd.concat([network_data, model.datacollector.get_model_vars_dataframe()])
         network_data['Round'] = network_data['Round'].fillna(round)    
-        print(tabulate(network_data.head(2), headers = 'keys', tablefmt = 'psql'))
-
-
-
-        """
+        print(tabulate(network_data, headers = 'keys', tablefmt = 'psql'))
 
         Data = model.datacollector.get_model_vars_dataframe()
         #degdis = Data.iloc[:, 0:1]

@@ -37,15 +37,16 @@ class GamesModel(Model):
 
 
         if UV[0]:
+            # Generates list of tuples (U, V) of length N_agents
             self.uvpay = np.random.RandomState().rand(N,2)*3 - 1
             game_l = [None] * N
             for i in range(N):
-                game_l[i] = [[1,self.uvpay[i][0]],[self.uvpay[i][1],0]]
+                game_l[i] = (self.uvpay[i][0],self.uvpay[i][1])
             self.game_list = game_l
         if not UV[0]:
             game_l = [None] * N
             for i in range(N):
-                game_l[i] = [[1,UV[1]],[UV[2],0]]
+                game_l[i] = (UV[1],UV[2])
             self.game_list = game_l
             
 
@@ -79,6 +80,7 @@ class GamesModel(Model):
         return nx.average_shortest_path_length(self.graph)
     
 
+    # TODO: Appears to be unusued?
     def get_game_list(self):
         uv_positions = [(game[0][1], game[1][0]) for game in self.game_list]
         return uv_positions

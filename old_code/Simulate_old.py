@@ -36,6 +36,7 @@ def simulateANDWealth(N, rounds, steps, netRat = 0.1, partScaleFree = 1, alwaysS
         Data = model.datacollector.get_model_vars_dataframe()
         display(Payoff.head(50))
         display(Data.head(50))
+        
         temp, temp2, rtemp, rtemp2  = [], [], [], []
         for i in range(steps):
             temp = list(itertools.chain(Payoff["playerPayoff"].loc[i, :].values.tolist()))

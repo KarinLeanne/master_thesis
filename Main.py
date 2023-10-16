@@ -46,8 +46,8 @@ def main():
     """
 
 
-    Degrees, UV_space = sim.simulateANDdegree(params.n_agents, params.p_rewiring, params.alpha, params.beta, network = ('RR',4,1), rounds = params.n_rounds, steps = params.n_steps, netRat = 0.1, partScaleFree = 1, alwaysSafe = False, UV=(True,1,2))
-    viz.vizualize_UV(UV_space)
+    network_data, agent_data = sim.simulate(params.n_agents, params.p_rewiring, params.alpha, params.beta, network = ('RR',4,1), rounds = params.n_rounds, steps = params.n_steps, netRat = 0.1, partScaleFree = 1, alwaysSafe = False, UV=(True,1,2))
+    viz.viz_UV(network_data)
 
 if __name__ == "__main__":
     main()

@@ -2,50 +2,33 @@ import numpy as np
 from scipy.optimize import least_squares
 from math import exp
 
-P0 = UP = LEFT = RISK = 0
-P1 = DOWN = RIGHT = SAFE = 1
 
+
+#TODO Changed is so the deafult game is simply used if no alternative UV is specified
 class Game:
-    def __init__(self, payoff0 = None, payoff1 = None,
-                                       payoffs = [[(1, 3),(0, 5)],
-                                                  [(5, 0),(3, 1)]]):
+    def __init__(self, UV = (3, 5)):
         
         '''If no payoff matrix is given, the prisoners dilemma is chosen.
         Can also create a game from the payoffs of two players.'''
+        self.UV = UV
         
-        if payoff0 != None:
-            payoffs = [list(zip(payoff0[LEFT], payoff1[LEFT])) ,
-                       list(zip(payoff0[RIGHT], payoff1[RIGHT]))]
-
-        self.payoffs = payoffs
-        
-
-
+    def getPayoffmatrix(self):
+        return [[(1, 1), (self.UV[0], self.UV[1])], [(self.UV[1], self.UV[0]), (0,0)]]
+    
     def playGame(self, choiceP0, choiceP1):
         'Simulates a game with the player choices.'
-
-        return self.payoffs[choiceP0][choiceP1]
+        payoffs = self.getPayoffmatrix()
+        return payoffs[choiceP0][choiceP1]
 
 
     def getPlayerCells(self, player):
+        #TODO what is choice order?
         'Returns the cells in a choice by choice order.'
-        a = b = 0
 
-        # Depending on the player, the cell order changes.
-        if player == P0:
-            b = 1
-        else:
-            a = 1
-
-        print(self.payoffs)    
-
-        firstCell = self.payoffs[UP][LEFT][player]
-        secondCell = self.payoffs[UP + a][LEFT + b][player]
-        thirdCell = self.payoffs[DOWN - a][RIGHT - b][player]
-        fourthCell = self.payoffs[DOWN][RIGHT][player]
-
-        print("player", player)
-        print(firstCell, secondCell, thirdCell, fourthCell)
+        firstCell = self.getPayoffmatrix()[0][0][player]
+        secondCell = self.getPayoffmatrix()[0][1][player]
+        thirdCell = self.getPayoffmatrix()[1][0][player]
+        fourthCell = self.getPayoffmatrix()[1][1][player]
 
         return (firstCell, secondCell, thirdCell, fourthCell)
 
@@ -82,8 +65,6 @@ class Game:
                 return (0,0)
             else:
                 return (np.random.uniform(0,1), np.random.uniform(0,1))
-
-
         return (x,y)
 
 
@@ -106,6 +87,7 @@ class Game:
             return c
         
 
+    #TODO: is never used?
     def Game_to_UV(payoff):
         'Returns normalized payoffs for the game.'
         u11= 1
