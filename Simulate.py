@@ -1,3 +1,7 @@
+### Simulate.py
+# Runs the model for a certain number of rounds and steps using the given parameters
+###
+
 import numpy as np
 import pandas as pd
 import itertools
@@ -23,7 +27,23 @@ def gini_new(array):
 
     return ((np.sum((2 * index - n  - 1) * array)) / (n * np.sum(array))) 
 
-def simulate(N, p_rewiring, alpha, beta, network, rounds, steps, netRat = 0.1, partScaleFree = 1, alwaysSafe = False, UV=(True,None,None)):
+def simulate(N, rewiring_p, alpha, beta, network, rounds, steps, netRat = 0.1, partScaleFree = 1, alwaysOwn = False, alwaysSafe = False, UV=(True,None,None)):
+    '''
+    Description: Run the simulation for a certain number of rounds and steps using the given parameters
+    Inputs:
+        - N: The number of agents in a model
+        - rewiring_p: The probability that an agent rewires a connection for each timestep
+        - alpha: alpha is the homophilic parameter 
+        - beta: beta controls homophily together with alpha
+        - network: A truple sepcifying the type of network
+        - netRat: A parameter of agent rationality
+        - partScaleFree: 
+        - AlwaysOwn: Boolean, if true always choose the own strategy
+        - UV: A truple specifing whether the UV space should be generated randomly as well as the default values for U and V
+    Outputs:
+        - network_data: The data collected in network level
+        - agent_data: The data collected on agent level
+    '''
 
     #agent_data = pd.DataFrame()
     network_data = pd.DataFrame(columns=['Round'])
@@ -36,79 +56,19 @@ def simulate(N, p_rewiring, alpha, beta, network, rounds, steps, netRat = 0.1, p
 
         Track_edges = [[0,0], [0,0]]
 
-        model = gm.GamesModel(N, p_rewiring, alpha, beta, network, netRat, partScaleFree, alwaysSafe, UV)
+        model = gm.GamesModel(N, rewiring_p, alpha, beta, network, netRat, partScaleFree, alwaysOwn, UV)
         # Step through the simulation.
         for _ in range(steps):
             model.step()
+        #print(model.datacollector.model_vars)
         agent_data = pd.concat([agent_data, model.datacollector.get_agent_vars_dataframe()])
         agent_data['Round'] = agent_data['Round'].fillna(round)
         network_data = pd.concat([network_data, model.datacollector.get_model_vars_dataframe()])
         network_data['Round'] = network_data['Round'].fillna(round)
+        #print(tabulate(network_data, headers = 'keys', tablefmt = 'psql'))
     
     network_data = network_data.reset_index(drop=False, names="Step")
 
     return network_data, agent_data
-
-
-"""
-def simulateANDdegree(N,  p_rewiring, alpha, beta, network, rounds, steps, netRat = 0.1, partScaleFree = 1, alwaysSafe = False, UV=(True,None,None)):
-    '''This function runs the model for given parameters and returns degree distribution and UV space population'''
-    network_data = pd.DataFrame(columns=['Round'])
-
-    avDegree = []
-    UV_space = [[],[]]
-    for round in range(rounds):
-        model = gm.GamesModel(N, p_rewiring, alpha, beta, network, netRat, partScaleFree, alwaysSafe, UV)
-        for _ in range(steps):
-            model.step()
-
-        network_data = pd.concat([network_data, model.datacollector.get_model_vars_dataframe()])
-        network_data['Round'] = network_data['Round'].fillna(round)    
-        print(tabulate(network_data, headers = 'keys', tablefmt = 'psql'))
-
-        Data = model.datacollector.get_model_vars_dataframe()
-        #degdis = Data.iloc[:, 0:1]
-        games = Data.iloc[:, 1:2]
-        #temp = []
-        gtemp = []
-
-        print(games)
-        
-        for i in range(steps):
-            #temp.append(degdis.loc[i, :].values.tolist()[0])
-            gtemp.append(games.loc[i, :].values.tolist()[0])
-            #if len(avDegree):
-            #    avDegree[i].extend(temp[i])
-
-        #if not len(avDegree):
-        #    avDegree = temp
-
-    U_space, V_space = [], []
-    temp3, temp4 = [], []
-    UV_coors_temp = []
-
-    for k in range(len(gtemp)):
-        for l in range(len(gtemp[k])):
-            temp3.append( gtemp[k][l][0][1])
-            temp4.append( gtemp[k][l][1][0])
-            uvcoor= [gtemp[k][l][0][1], gtemp[k][l][1][0]]
-            UV_coors_temp.append(uvcoor)
-        
-        U_space.append(temp3)
-        V_space.append(temp4)
-        temp3, temp4 = [], []
-
-    
-        if len(UV_space[0]):
-            UV_space[0][k].extend(U_space[k])
-            UV_space[1][k].extend(V_space[k])
-        
-    if not len(UV_space[0]):
-        UV_space[0] = U_space
-        UV_space[1] = V_space
-
-
-
-    return (avDegree, UV_space)"""
 
 

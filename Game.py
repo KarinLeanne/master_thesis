@@ -1,10 +1,13 @@
+### Game.py
+# Specifies the Game class. This represent the games agents can play with one another.
+# And computes characteristics of the game
+###
+
 import numpy as np
 from scipy.optimize import least_squares
 from math import exp
 
 
-
-#TODO Changed is so the deafult game is simply used if no alternative UV is specified
 class Game:
     def __init__(self, UV = (3, 5)):
         
@@ -22,7 +25,6 @@ class Game:
 
 
     def getPlayerCells(self, player):
-        #TODO what is choice order?
         'Returns the cells in a choice by choice order.'
 
         firstCell = self.getPayoffmatrix()[0][0][player]
@@ -40,6 +42,9 @@ class Game:
 
         (firstCell, secondCell, thirdCell, fourthCell) = self.getPlayerCells(player)
 
+        print(firstCell, secondCell, thirdCell, fourthCell)
+        print(rationality1, rationality2)
+
         u11 = firstCell
         u12 = secondCell
         u21 = thirdCell
@@ -56,6 +61,8 @@ class Game:
             eq2 = (exp(lamb2*(pc1*u11+(1-pc1)*u21)))/(exp(lamb2*(pc1*u11+(1-pc1)*u21))+exp(lamb2*(pc1*u12+(1-pc1)*u22)))  - pc2 
             #print("eq2", eq2)
             return [eq1, eq2]
+        
+    
         try:
             #x, y =  fsolve(equations, (0.5, 0.5))
             x, y = least_squares(equations, (0,5, 0,5), bounds = ((0, 1), (0, 1)))
@@ -87,14 +94,3 @@ class Game:
             return c
         
 
-    #TODO: is never used?
-    def Game_to_UV(payoff):
-        'Returns normalized payoffs for the game.'
-        u11= 1
-        u12= (payoff[1][2]-payoff[2][2])/(payoff[1][1]-payoff[2][2])
-        u21= (payoff[2][1]-payoff[1][1])/(payoff[1][1]-payoff[2][2])
-        u22= 0
-
-        norm_payoffs = [[u11, u12], [u21, u22]]
-
-        return(norm_payoffs)

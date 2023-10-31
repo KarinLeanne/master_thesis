@@ -1,3 +1,7 @@
+### Experiments.py
+# Contains the different experiment that can be run with the model
+###
+
 import numpy as np
 import Simulate as sim
 import Vizualize as viz
@@ -10,15 +14,24 @@ import scipy.stats as st
 
 params = utils.get_config()
 
-def mean_measures_per_timestep(p_rewiring, alpha, beta, measures_of_interest = ["M: Mean Degree", "M: Var of Degree", "M: Avg Clustering"], networks = params.networks):
-
+def mean_measures_per_timestep(rewiring_p, alpha, beta, measures_of_interest = ["M: Mean Degree", "M: Var of Degree", "M: Avg Clustering"], networks = params.networks):
+    '''
+    Description: Runs the model simulation for alle specified network and adds the collected data to a dataframe
+    Input: 
+        - rewiring_p: The probability that an agent rewires a connection for each timestep 
+        - alpha: The homophilic parameter 
+        - beta: Controls homophily together with alpha
+        - measures_of_interest: The data measures to collect in the dataframe
+        - networks: The networks for which to run the simulation
+    Output: A dataframe containing the sepcified results of the simulations
+    '''
     # Create dataframe in which data for all network will be stored
     df_model_full = pd.DataFrame()
     df_data_mean_std = pd.DataFrame()
 
     for network in networks:
         # Data_model_partial contains data from one network
-        df_model_partial, df_agent_partial = sim.simulate(N = params.n_agents, p_rewiring = p_rewiring, alpha=alpha, beta=beta, network=network, rounds = params.n_rounds, steps = params.n_steps, netRat = 0.1, partScaleFree = 1, alwaysSafe = False, UV=(False,1,2))
+        df_model_partial, df_agent_partial = sim.simulate(N = params.n_agents, rewiring_p = rewiring_p, alpha=alpha, beta=beta, network=network, rounds = params.n_rounds, steps = params.n_steps, netRat = 0.1, partScaleFree = 1, alwaysSafe = False, UV=(False,1,2))
         # Add column specifying which network the data is for
         df_model_partial['Network'] = network[0]
         # Add partial data to the network that needsa to contain the full data
@@ -37,6 +50,12 @@ def mean_measures_per_timestep(p_rewiring, alpha, beta, measures_of_interest = [
 
 
 def effect_of_rewiring_p_on_variance_and_clustering(alpha, beta):
+    '''
+    Description: Experiment with the effect of different values of the rewiring probability on the variance and clustering of the network. Mean should be maintained.
+    Input: 
+        - alpha: The homophilic parameter 
+        - beta: Controls homophily together with alpha
+    '''
     df_rewiring_p = pd.DataFrame()
     rewiring_ps = np.linspace(0.0, 1.0, 5)
 
@@ -53,6 +72,13 @@ def effect_of_rewiring_p_on_variance_and_clustering(alpha, beta):
 
 
 def effect_of_triangle_prob_on_variance_and_clustering(rewiring_p, alpha, beta):
+    '''
+    Description: Experiment with the effect of different values of the triangle prob on the variance and clustering of the network. 
+    Input: 
+        - rewiring_p: The probability that an agent rewires a connection for each timestep 
+        - alpha: The homophilic parameter 
+        - beta: Controls homophily together with alpha
+    '''
     df_triangle_prob = pd.DataFrame()
 
     triangle_probs = np.linspace(0.0, 1.0, 5)
@@ -68,6 +94,13 @@ def effect_of_triangle_prob_on_variance_and_clustering(rewiring_p, alpha, beta):
         
 
 def effect_of_alpha_beta_on_variance_and_clustering(rewiring_p, alpha, beta):
+    '''
+    Description: Experiment with the effect alpha and beta on the variance and clustering of the network. 
+    Input: 
+        - rewiring_p: The probability that an agent rewires a connection for each timestep 
+        - alpha: The default homophilic parameter 
+        - beta: Controls homophily together with alpha, this is the default value
+    '''
     
     df_alpha = pd.DataFrame()
     alphas = np.linspace(0.0, 1.0, 5)

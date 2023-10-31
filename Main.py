@@ -1,3 +1,8 @@
+### Main.py
+# Specifies which experiments to run and which vizualizations to make
+###
+
+
 import Simulate as sim
 import Vizualize as viz
 from IPython.display import display
@@ -13,7 +18,7 @@ params = utils.get_config()
 def main():
     # Run the following experiments
 
-    """
+    
     if not os.path.isfile(f"data/df_measures_over_timesteps_{params.n_steps}_{params.n_agents}_{params.n_rounds}.xlsx"):
         exp.mean_measures_per_timestep(params.p_rewiring, params.alpha, params.beta) 
     df_measures_over_timesteps = pd.read_excel(f"data/df_measures_over_timesteps_{params.n_steps}_{params.n_agents}_{params.n_rounds}.xlsx")
@@ -43,11 +48,13 @@ def main():
     viz.effect_variable_on_network_measures(df_influence_triangle_prob, 'triangle_p')
     viz.effect_variable_on_network_measures(df_influence_alpha, 'alpha')
     viz.effect_variable_on_network_measures(df_influence_beta, 'beta')
+    
+
+
     """
-
-
-    network_data, agent_data = sim.simulate(params.n_agents, params.p_rewiring, params.alpha, params.beta, network = ('RR',4,1), rounds = params.n_rounds, steps = params.n_steps, netRat = 0.1, partScaleFree = 1, alwaysSafe = False, UV=(True,1,2))
+    network_data, agent_data = sim.simulate(params.n_agents, params.p_rewiring, params.alpha, params.beta, network = ('RR',4,1), rounds = params.n_rounds, steps = params.n_steps, netRat = 0.1, partScaleFree = 1, alwaysOwn = False, UV=(True,1,2))
     viz.viz_UV(network_data)
+    """
 
 if __name__ == "__main__":
     main()

@@ -1,3 +1,11 @@
+### GamesModel.py
+# Specifies the GamesModel class which is a subclass of a mesa.Model. This 
+# represents the environment of the model and handles all global functionality 
+# like environment variables, data collection, initializing agents, and calling 
+# the agents' step functions each step.
+###
+
+
 from mesa import Model
 from mesa.time import RandomActivation
 from mesa.datacollection import DataCollector
@@ -8,14 +16,33 @@ import GameAgent as ga
 
 
 class GamesModel(Model):
-    'The model that will simulate economic games in a network.'
+    '''
+    Description: The model that will simulate economic games in a network.'
+    Inputs:
+        - N: The number of agents in a model
+        - rewiring_p: The probability that an agent rewires a connection for each timestep
+        - alpha: alpha is the homophilic parameter 
+        - beta: beta controls homophily together with alpha
+        - network: A truple sepcifying the type of network
+        - netRat: A parameter of agent rationality
+        - partScaleFree: 
+        - AlwaysOwn: Boolean, if true always choose the own strategy
+        - UV: A truple specifing whether the UV space should be generated randomly as well as the default values for U and V
 
-    def __init__(self, N, rewiring_p, alpha, beta, network, netRat = 0.1, partScaleFree = 0, alwaysSafe = False, UV = (True, None, None)):
+    Functions:
+        - get_mean_degree(): Gets the mean degree of the model network
+        - get_variance_degree(): Gets the variance of the degree in the model network
+        - get_clustering_coefficient(): Gets the clustering coefficent of the model network
+        - step(): updates model environment and takes a step for each agent
+
+    '''
+
+    def __init__(self, N, rewiring_p, alpha, beta, network, netRat = 0.1, partScaleFree = 0, alwaysOwn = False, UV = (True, None, None)):
         self.num_agents = N
         self.schedule = RandomActivation(self)
         self.netRat = netRat
         self.ratFunct = lambda f : f**2
-        self.alwaysSafe = alwaysSafe
+        self.alwaysSafe = alwaysOwn
         self.game_list = [None]*N
         
 
@@ -35,23 +62,7 @@ class GamesModel(Model):
         #save mean degree of network
         self.initial_mean_degree = self.get_mean_degree()
 
-
-        if UV[0]:
-            # Generates list of tuples (U, V) of length N_agents
-            self.uvpay = np.random.RandomState().rand(N,2)*3 - 1
-            game_l = [None] * N
-            for i in range(N):
-                game_l[i] = (self.uvpay[i][0],self.uvpay[i][1])
-            self.game_list = game_l
-        if not UV[0]:
-            game_l = [None] * N
-            for i in range(N):
-                game_l[i] = (UV[1],UV[2])
-            self.game_list = game_l
-            
-
         # Create agents.
-
         for node in self.graph:
             agent = ga.GameAgent(node, self, rewiring_p, alpha, beta)
             self.schedule.add(agent)
@@ -65,30 +76,33 @@ class GamesModel(Model):
 
     
     def get_mean_degree(self):
+        '''
+        Description: Gets the mean degree of the model network
+        Output: Mean degree network
+        '''
         total_degree = sum([x[1] for x in self.graph.degree()])
         return (total_degree / self.graph.number_of_nodes())
     
     def get_variance_degree(self):
+        '''
+        Description: Gets the variance of the degree in the model network
+        Output: variance of the degree in the model network
+        '''
         degree_list = [x[1] for x in self.graph.degree()]
         mean = self.get_mean_degree()
         return sum((i - mean) ** 2 for i in degree_list) / len(degree_list)
     
     def get_clustering_coef(self):
+        '''
+        Description: Gets the clustering coefficent of the model network
+        Output: Clustering coefficent network 
+        '''
         return nx.average_clustering(self.graph)
-    
-    def get_avg_path_length(self):
-        return nx.average_shortest_path_length(self.graph)
-    
-
-    # TODO: Appears to be unusued?
-    def get_game_list(self):
-        uv_positions = [(game[0][1], game[1][0]) for game in self.game_list]
-        return uv_positions
-
 
     def step(self):
+        '''
+        Description: updates model environment and takes a step for each agent
+        '''
         self.schedule.step()
         self.datacollector.collect(self)
-        #print(self.game_list)
-        #print(list(dict(self.graph.degree()).values()))
-        #self.graph = self.update_network()
+      

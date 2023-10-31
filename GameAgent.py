@@ -1,3 +1,9 @@
+### GameAgent.py
+# Speficies the GameAgent class which is a subclass of a mesa.Agent. This 
+# represents the agents of the model and handles characteristics and interaction
+###
+
+
 import random as rand
 from random import random, randint
 import networkx as nx
@@ -15,7 +21,7 @@ P1 = DOWN = RIGHT = SAFE = 1
 class GameAgent(Agent):
     'The agent that will play economic games.'
 
-    def __init__(self, id, model, rewiring_p, alpha, beta):
+    def __init__(self, id, model, rewiring_p, alpha, beta, UV = (True, None, None)):
         super().__init__(id, model)
         self.neighbors = list(model.graph.neighbors(id))
         self.rationality = model.netRat * model.ratFunct(len(self.neighbors)) # rationality is the rationality of the agent
@@ -27,7 +33,7 @@ class GameAgent(Agent):
         self.totPayoff = 0              # totPayoff is the (starting) total payoff 
 
         self.model = model
-        self.paidoff = model.game_list[self.unique_id]
+        
 
         self.neighChoice = list(model.graph.neighbors(id))
         self.edges = list(model.graph.edges)
@@ -38,6 +44,13 @@ class GameAgent(Agent):
 
         self.added_edges = [0,0]
         self.removed_edges = [0, 0]
+
+        # Each agent has a game
+        if UV[0]:
+            self.uvpay = np.random.RandomState().rand(2)*3 - 1
+            self.game = Game.Game((self.uvpay[0],self.uvpay[1]))
+        if not UV[0]:
+            self.game = Game.Game((UV[1],UV[2]))
 
 
     def get_rewiring_prob(self, neighbors, alpha, beta):
@@ -131,57 +144,61 @@ class GameAgent(Agent):
                 self.removed_edges[1] += 1
         
 
-    def getPlayerChance0(self, other_agent, game):
-        '''This returns the strategy of the player based on his own,
-           and the other agent rationality.'''
+    def getPlayerStrategyProbs(self, other_agent):
+        '''
+        Description: This returns the probability for each game and for each player that strategy 0 is chosen
+        based on the rationality of both agents
+        Input:
+            - other_agent: The agent chosen to play a game with
+        Output: 
+            - g0_P0_Prob_S0: The probability of player 0 choosing strategy 0 in its own game (G0)
+            - g0_P1_Prob_S0: The probability of player 1 choosing strategy 0 in the others game (G0)
+            - g1_P0_Prob_S0: The probability of player 0 choosing strategy 0 in the others game (G1)
+            - g1_P1_Prob_S0: The probability of player 0 choosing strategy 0 in its own game (G1)
 
-        chanceOf0 ,chance2 = game.GetQreChance(0, self.rationality, other_agent.rationality)
+        '''
+    
+        p0_g0_Prob_S0 , p1_g0_Prob_S0  = self.game.GetQreChance(0, self.rationality, other_agent.rationality)
+        p0_g1_Prob_S0 , p1_g1_Prob_S0  = other_agent.game.GetQreChance(0, self.rationality, other_agent.rationality)
+        return(p0_g0_Prob_S0 , p1_g0_Prob_S0,  p0_g1_Prob_S0 , p1_g1_Prob_S0)
+    
 
-        return(chanceOf0, chance2)
-
-
-    def playerRiskGameChance(self, riskGameMean, safeGameMean):
+    def getGameChooserProb(chooser, chooser_Mean, not_chooser_mean):
         '''This takes the game means and combines it with rationality to get the
-           chance of choosing the risky game.'''
-           #\\FIXME: Division by zero error.
-        if self.model.alwaysSafe == True:
-            return 0
-
-        try:
-            risk = exp(self.rationality * riskGameMean)
-            safe = exp(self.rationality * safeGameMean)
-
-            return risk / (risk + safe)
-
-
-        except OverflowError:
-            return 1 if riskGameMean > safeGameMean else 0
-
-
-    def playerStrat(self, other_agent):
-        'Returns the preffered game type and the strategy.'
+           chance of choosing the game of the agent who gets to choose'''
+                
+        if  chooser.model.alwaysSafe == True:
+            return 1 if chooser_Mean > not_chooser_mean else 0
         
-        # Calculating the own game values.
-        # TODO gamerisk???
-        gameRisk = Game.Game(self.paidoff)
-        riskChance0, chance2 = self.getPlayerChance0(other_agent, gameRisk)
-        riskGameMean = gameRisk.getUtilityMean(0, chance2, riskChance0, self.eta)
+        rational_utility_chooser = exp(chooser.rationality * not_chooser_mean)
+        rational_utility_notchooser  = exp(chooser.rationality * not_chooser_mean)
 
-        # Calculating the safe game values.
-        gameSafe = Game.Game(other_agent.paidoff)
-        safeChance0, chance2= self.getPlayerChance0(other_agent, gameSafe)
-        safeGameMean = gameSafe.getUtilityMean(0, chance2, safeChance0, self.eta)
+        return rational_utility_chooser / (rational_utility_notchooser  + rational_utility_chooser)
 
-        # Making a choice in between them with rationality in mind.
-        if random() < self.playerRiskGameChance(riskGameMean, safeGameMean):
-            return (RISK, riskChance0, riskGameMean)
+    
+    def chooseGame(chooser, notChooser, chooser_gChooser_Prob_S0 , notchooser_gchooser_Prob_S0,  chooser_gNotChooser_Prob_S0 , notchooser_gNotChooser_Prob_S0):
+        '''
+        Description This returns the game that is going to be played.
+        '''
+
+
+        # Calculating the mean utility of the games for the chooser
+        chooser_gChooser_UtilityMean = chooser.game.getUtilityMean(0, chooser_gChooser_Prob_S0, notchooser_gchooser_Prob_S0, chooser.eta)
+        chooser_gNotchooser_UtilityMean =  notChooser.game.getUtilityMean(1, chooser_gNotChooser_Prob_S0, notchooser_gNotChooser_Prob_S0, chooser.eta)
+
+        # Making a choice between the games with rationality in mind.
+        if random() < chooser.getGameChooserProb(chooser_gChooser_UtilityMean, chooser_gNotchooser_UtilityMean):
+            return (chooser.game, chooser_gChooser_Prob_S0, notchooser_gchooser_Prob_S0)
         else:
-            return (SAFE, safeChance0, riskGameMean)
+            return (notChooser.game, chooser_gNotChooser_Prob_S0, notchooser_gNotChooser_Prob_S0)
+
 
 
     def step(self):
         '''Advances the agent one time step in the model.'''
+
         # If the node does not have neighbours, it can be skipped.
+        # Should be connected?
         if self.nNeigbors == 0:
             return
 
@@ -190,23 +207,23 @@ class GameAgent(Agent):
 
         other_agent = self.model.schedule.agents[neighId]
 
-        # The player choices are made.
-        _, P0chance0, ownGameMean = self.playerStrat(other_agent)
-        P1game, P1chance0, otherGameMean = other_agent.playerStrat(self)
-        
-        # The game played is depending on the risk aversion of the other player.
-        if P1game:
-            #print("paidoff1", self.paidoff)
-            game = Game.Game(self.paidoff)
-        if not P1game:
-            game = Game.Game(other_agent.paidoff)
-            #print("paidoff2", other_agent.paidoff)
 
-        P0choice = 0 if random() < P0chance0 else 1
-        P1choice = 0 if random() < P1chance0 else 1
+        # Compute strategy for both players
+        p0_g0_Prob_S0 , p1_g0_Prob_S0,  p0_g1_Prob_S0 , p1_g1_Prob_S0 = self.getPlayerStrategyProbs(other_agent)
+
+
+        # Most risk averse player chooses game
+        if self.eta > other_agent.eta:
+            game, p0_Prob_s0 , p1_Prob_s0 = self.chooseGame(other_agent, p0_g0_Prob_S0 , p1_g0_Prob_S0,  p0_g1_Prob_S0 , p1_g1_Prob_S0)
+        else:
+            game, p1_Prob_s0 , p0_Prob_s0 = other_agent.chooseGame(self, p1_g1_Prob_S0 , p0_g1_Prob_S0,  p1_g0_Prob_S0 , p0_g0_Prob_S0)
+
+        # Choose strategy game for both players
+        P0_strategy = 0 if random() < p0_Prob_s0 else 1
+        P1_strategy = 0 if random() < p1_Prob_s0 else 1
 
         # The game is played.
-        (payoff0, payoff1) = game.playGame(P0choice, P1choice)
+        (payoff0, payoff1) = game.playGame(P0_strategy, P1_strategy)
 
         # Both players get their respective payoffs.
         self.totPayoff += payoff0
@@ -214,14 +231,14 @@ class GameAgent(Agent):
 
         #player adjust their game depending on earnings 
         #//FIXME: replicator dynamics for game adoption and risk preference with probability proportional to payoff!
-        if self.totPayoff < other_agent.totPayoff and self.paidoff <= other_agent.paidoff:
+        if self.totPayoff < other_agent.totPayoff and self.game.UV <= other_agent.game.UV:
             self.eta = (other_agent.eta+self.eta)/2
 
+        # Change game and eta if other game seems more useful
+        ownGameMean = self.game.getUtilityMean(0, p1_Prob_s0, p0_Prob_s0, self.eta)
         if (ownGameMean < payoff0) and (self.totPayoff < other_agent.totPayoff):
-            self.model.game_list[self.unique_id] = self.model.game_list[other_agent.unique_id]
-            self.paidoff = self.model.game_list[other_agent.unique_id]
+            self.game = other_agent.game
             self.eta = other_agent.eta
-            #self.eta = self.eta_base
 
         #random mutation of risk averion eta
         if rand.random() < 0.01:

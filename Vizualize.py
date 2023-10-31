@@ -1,4 +1,8 @@
-'''Visualize UV-space population'''
+### Vizualize.py
+# Contains all functions making vizualizations using simulation data
+###
+
+
 from chart_studio import plotly as py 
 import plotly.figure_factory as ff
 import numpy as np
@@ -16,6 +20,12 @@ params = utils.get_config()
 
 
 def viz_UV(network_data):
+    '''
+    Description: Vizualize the UV spave 
+    Input: 
+        - network_data: Data collected during simulations 
+    '''
+    
     for step in np.arange(params.n_steps):
         df = network_data.loc[network_data['Step'] == step]
 
@@ -24,13 +34,11 @@ def viz_UV(network_data):
         x = [item[0] for row in df['Game Distribution'] for item in row]
         y = [item[1] for row in df['Game Distribution'] for item in row]
 
-        print(len(x), len(y))
-
         ax = plt.subplot()
         ax.scatter(x, y)
         ax.set_xlabel("U")
         ax.set_ylabel("V")
-        plt.show()
+        #plt.show()
 
 
 """
@@ -116,24 +124,17 @@ def network_measures_over_timesteps(df):
     networks = df['Network'].unique()
 
     # Only first two columns of dataframe do not contain measures
-    measures = list(df.columns)[2:]
     mean_measures = list(df.loc[:, df.columns.str.contains('M:')].columns)
-
+    std_measures = list(df.loc[:, df.columns.str.contains('STD:')].columns)
 
     fig, axs = plt.subplots(len(networks), len(mean_measures), sharex='col', sharey='row')
 
 
     # Make plot per measure and networktype
-    for row in range((len(networks))):
-
-        
-        for col in range(len(mean_measures)):
-            mean = df.loc[df['Network'] == networks[row]][measures[col]]
-            std = df.loc[df['Network'] == networks[row]][measures[col+len(mean_measures)]]
-
-            
-            
-
+    for mean_measure, std_measure, row in zip(mean_measures, std_measures, range(len(mean_measures))):
+        for network, col in zip(networks, range(len(networks))):
+            mean = df.loc[df['Network'] == network][mean_measure]
+            std = df.loc[df['Network'] == network][std_measure]
             axs[row, col].plot(steps, mean)
             axs[row, col].fill_between(steps, mean+2*std, mean-2*std, alpha = 0.2)
 
