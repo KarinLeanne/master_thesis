@@ -12,6 +12,9 @@ import matplotlib.pyplot as plt
 import networkx as nx
 from IPython.display import display
 from tabulate import tabulate
+from scipy.ndimage.filters import gaussian_filter
+import matplotlib.cm as cm
+import seaborn as sns
 
 import utils
 import old_code.Simulate_old as sim
@@ -19,26 +22,196 @@ import old_code.Simulate_old as sim
 params = utils.get_config()
 
 
-def viz_UV(network_data):
+
+def viz_time_series_agent_data(df, measure, name_measure):
+    # Calculate mean and standard deviation of risk aversion  per step
+    grouped_data = df.groupby('Step')[measure].agg(['mean', 'std'])
+
+    # Create a new subplot for the variance
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8), sharex=True)
+
+    # Plot the time series with mean and standard deviation
+    ax1.plot(grouped_data.index, grouped_data['mean'], label='Mean', color='m')
+    ax1.fill_between(grouped_data.index,
+                    grouped_data['mean'] - grouped_data['std'],
+                    grouped_data['mean'] + grouped_data['std'],
+                    color='m', alpha=0.1, label='Standard Deviation')
+
+    # Add labels and title to the first subplot
+    ax1.set_ylabel(name_measure)
+    ax1.set_title(f"Time Series of {name_measure} Mean")
+    ax1.legend()
+
+    # Calculate and plot the time series of the variance
+    variance = df.groupby('Step')[measure].var()
+    ax2.plot(variance.index, variance, label='Variance', color='purple')
+
+    # Add labels and title to the second subplot
+    ax2.set_xlabel('Step')
+    ax2.set_ylabel('Variance')
+    ax2.set_title(f"Time Series of {name_measure} Variance")
+    ax2.legend()
+
+    # Adjust layout to prevent clipping of labels
+    plt.tight_layout()
+
+    # Save plot
+    plt.savefig(f"plots/chap2/{name_measure}__{params.n_steps}_{params.n_agents}_{params.n_rounds}.png")
+    # Close the figure to prevent overlap
+    plt.close() 
+
+
+def viz_time_series_agent_data_rationality(df):
+    viz_time_series_agent_data(df, "Player risk aversion", "Player Risk Aversion")
+
+
+def viz_time_series_agent_data_pay_off(df):
+    viz_time_series_agent_data(df, "playerPayoff", "Player Wealth")
+
+
+def viz_wealth_distribution(df):
+
+    stepsPlot = [*range(int(params.n_steps / 4), params.n_steps + 1, int(params.n_steps / 4))]
+
+    # Create a figure with four subplots for violin plots
+    fig_violin, axs_violin = plt.subplots(2, 2, figsize=(12, 8))
+
+    # Flatten the axs_violin array to iterate over subplots
+    axs_violin = axs_violin.flatten()
+
+    # Create a figure with four subplots for KDE plots
+    fig_kde, axs_kde = plt.subplots(2, 2, figsize=(12, 8))
+
+    # Flatten the axs_kde array to iterate over subplots
+    axs_kde = axs_kde.flatten()
+
+    # Iterate over selected steps and create violin and KDE plots
+    for idx, step in enumerate(stepsPlot):
+        subset_data = df[df['Step'] == step]
+
+        # Violin plot
+        sns.violinplot(x=subset_data['Step'], y=subset_data['playerPayoff'], ax=axs_violin[idx], color='m')
+        axs_violin[idx].set_title(f'Step {step}')
+        axs_violin[idx].set_xlabel('Step')
+        axs_violin[idx].set_ylabel('Player Payoff')
+
+        # KDE plot
+        sns.kdeplot(subset_data['playerPayoff'], ax=axs_kde[idx], color='m', fill=True)
+        axs_kde[idx].set_title(f'Step {step}')
+        axs_kde[idx].set_xlabel('Player Payoff')
+        axs_kde[idx].set_ylabel('Density')
+
+    # Adjust layout to prevent clipping of labels
+    plt.tight_layout()
+
+    # Save Plots
+    # Save violin plot
+    fig_violin.savefig(f"plots/chap2/Wealth_violin_{params.n_steps}_{params.n_agents}_{params.n_rounds}.png")
+    
+    # Save KDE plot
+    fig_kde.savefig(f"plots/chap2/Wealth_KDE_{params.n_steps}_{params.n_agents}_{params.n_rounds}.png")
+
+
+def viz_corrrelation(df):
+
+    stepsPlot = [*range(int(params.n_steps / 4), params.n_steps + 1, int(params.n_steps / 4))]
+
+    # Create subplots
+    fig, axs = plt.subplots(1, 4, figsize=(16, 4))
+
+    # Iterate over selected steps and create scatter plots
+    for idx, step in enumerate(stepsPlot):
+        subset_data = df[df['Step'] == step]
+
+        # Scatter plot with regression line
+        sns.regplot(x='Player risk aversion', y='playerPayoff', data=subset_data, scatter_kws={'alpha': 0.5}, ax=axs[idx])
+        axs[idx].set_title(f'Scatter Plot at Step {step}')
+        axs[idx].set_xlabel('Risk Averseness')
+        axs[idx].set_ylabel('Pay-off')
+
+    # Adjust layout to prevent clipping of labels
+    plt.tight_layout()
+
+    plt.savefig(f"plots/chap2/Correlation_Wealth_Risk_aversion__{params.n_steps}_{params.n_agents}_{params.n_rounds}.png")
+    # Close the figure to prevent overlap
+    plt.close()  
+
+
+def viz_UV_scatter(df):
     '''
     Description: Vizualize the UV spave 
     Input: 
-        - network_data: Data collected during simulations 
+        - df: Agent data collected during simulations 
     '''
     
-    for step in np.arange(params.n_steps):
-        df = network_data.loc[network_data['Step'] == step]
+    df = df.loc[df['Step'] == df['Step'].max()]
 
 
-        #print(tabulate(df, headers = 'keys', tablefmt = 'psql'))
-        x = [item[0] for row in df['Game Distribution'] for item in row]
-        y = [item[1] for row in df['Game Distribution'] for item in row]
+    #print(tabulate(df, headers = 'keys', tablefmt = 'psql'))
+    U = df['UV'].apply(lambda x: x[0])
+    V = df['UV'].apply(lambda x: x[1])
 
-        ax = plt.subplot()
-        ax.scatter(x, y)
+    ax = plt.subplot()
+    ax.scatter(U, V)
+    ax.set_xlabel("U")
+    ax.set_ylabel("V")
+    
+    plt.savefig(f"plots/chap2/UV_scatter__{params.n_steps}_{params.n_agents}_{params.n_rounds}.png")
+    # Close the figure to prevent overlap
+    plt.close()  
+
+
+def viz_UV_heatmap(df):
+    sigma = 16
+    stepsPlot = [*range(int(params.n_steps / 8), params.n_steps + 1, int(params.n_steps / 8))]  # Adjusted for 2 rows and 4 columns
+
+    # Create a 2x4 grid of subplots with equal column widths
+    fig, axes = plt.subplots(nrows=2, ncols=4, figsize=(15, 8), gridspec_kw={'width_ratios': [1, 1, 1, 1]})
+
+    # Initialize empty lists to store U and V values for all steps
+    all_U_values = []
+    all_V_values = []
+
+    for idx, step in enumerate(stepsPlot):
+        dfPlot = df.loc[df['Step'] == step]
+
+        U = dfPlot['UV'].apply(lambda x: x[0])
+        V = dfPlot['UV'].apply(lambda x: x[1])
+
+        # Append U and V values to the lists
+        all_U_values.extend(U)
+        all_V_values.extend(V)
+
+    # Calculate common extent based on the minimum and maximum values of U and V
+    common_extent = [np.min(all_U_values), np.max(all_U_values), np.min(all_V_values), np.max(all_V_values)]
+
+    for idx, step in enumerate(stepsPlot):
+        dfPlot = df.loc[df['Step'] == step]
+
+        U = dfPlot['UV'].apply(lambda x: x[0])
+        V = dfPlot['UV'].apply(lambda x: x[1])
+
+        # Ensure that the number of steps is compatible with a 2x4 grid
+        ax = axes[idx // 4, idx % 4]  # Get the current subplot
+
+        heatmap, xedges, yedges = np.histogram2d(U, V, bins=50)
+        heatmap = gaussian_filter(heatmap, sigma=sigma)
+
+        # Use common extent for all subplots
+        im = ax.imshow(heatmap.T, extent=common_extent, origin='lower', cmap=cm.jet, interpolation='none', aspect='auto') 
         ax.set_xlabel("U")
         ax.set_ylabel("V")
-        #plt.show()
+        ax.set_title("Step: {}".format(step))
+
+    # Add a colorbar to the right of the subplots
+    cbar_ax = fig.add_axes([0.92, 0.15, 0.02, 0.7])
+    cbar = fig.colorbar(im, cax=cbar_ax)
+
+    # Adjust layout to prevent clipping of titles and colorbar
+    plt.tight_layout(rect=[0, 0, 0.91, 1])
+
+    plt.savefig(f"plots/chap2/UV_heatmap_{params.n_steps}_{params.n_agents}_{params.n_rounds}.png")
+    plt.show()
 
 
 """
@@ -180,8 +353,6 @@ def effect_variable_on_network_measures(df, variable):
                 axs[row, 0].fill_between(steps, mean+2*std, mean-2*std, alpha = 0.2, color=c)
                 
             axs[row, 0].legend()
-                
-        
 
         # Set common x label
         fig.text(0.5, 0.04, 'Step', ha='center')
@@ -199,7 +370,6 @@ def effect_variable_on_network_measures(df, variable):
         plt.savefig(f"plots/chap1/Effect_of_{variable}_on_{measure.replace('M:', '')}_{params.n_steps}_{params.n_agents}_{params.n_rounds}.png")
 
                     
-
 
 
         

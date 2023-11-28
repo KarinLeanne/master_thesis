@@ -50,7 +50,7 @@ def simulate(N, rewiring_p, alpha, beta, network, rounds, steps, netRat = 0.1, p
     agent_data = pd.DataFrame(columns=['Round'])
 
     for round in range(rounds):
-        #print("round", round)
+        print("round", round)
         
         # Keep track of how edges are made
 
@@ -60,14 +60,30 @@ def simulate(N, rewiring_p, alpha, beta, network, rounds, steps, netRat = 0.1, p
         # Step through the simulation.
         for _ in range(steps):
             model.step()
-        #print(model.datacollector.model_vars)
         agent_data = pd.concat([agent_data, model.datacollector.get_agent_vars_dataframe()])
         agent_data['Round'] = agent_data['Round'].fillna(round)
         network_data = pd.concat([network_data, model.datacollector.get_model_vars_dataframe()])
         network_data['Round'] = network_data['Round'].fillna(round)
-        #print(tabulate(network_data, headers = 'keys', tablefmt = 'psql'))
     
-    network_data = network_data.reset_index(drop=False, names="Step")
+
+    # Split the MultiIndex into separate columns for agent data
+    agent_data.reset_index(inplace=True)
+    agent_data[['Step', 'Players']] = pd.DataFrame(agent_data['index'].to_list(), index=agent_data.index)
+
+    # Reorder the columns with 'steps' and 'players' immediately after the index for agnet data
+    index_columns = ['Step', 'Players']
+    agent_data = agent_data[index_columns + [col for col in agent_data.columns if col not in index_columns]]
+
+    # Drop the original 'index' column for agent data
+    agent_data.drop(columns=['index'], inplace=True)
+
+
+    #print(tabulate(agent_data, headers = 'keys', tablefmt = 'psql'))
+    
+    # For network data, reset the index and rename the index column to "step"
+    network_data.reset_index(inplace=True)
+    network_data.rename(columns={"index": "step"}, inplace=True)
+    #print(tabulate(network_data, headers = 'keys', tablefmt = 'psql'))
 
     return network_data, agent_data
 

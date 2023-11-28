@@ -35,44 +35,39 @@ class Game:
         return (firstCell, secondCell, thirdCell, fourthCell)
 
 
-    def GetQreChance(self, player, rationality1, rationality2):
+    def equations(self, vars, u11, u12, u21, u22, lamb1, lamb2):
+        pc1, pc2 = vars
+        eq1 = np.exp(lamb1 * (pc2 * u11 + (1 - pc2) * u12)) / (
+            np.exp(lamb1 * (pc2 * u11 + (1 - pc2) * u12)) + np.exp(lamb1 * (pc2 * u21 + (1 - pc2) * u22))
+        ) - pc1
+        eq2 = np.exp(lamb2 * (pc1 * u11 + (1 - pc1) * u21)) / (
+            np.exp(lamb2 * (pc1 * u11 + (1 - pc1) * u21)) + np.exp(lamb2 * (pc1 * u12 + (1 - pc1) * u22))
+        ) - pc2
+        return [eq1, eq2]
+
+    def getQreChance(self, player, rationality1, rationality2):
         '''Returns the chance of the given player choosing option 0 in the game, 
         using quantal response equilibrium. Numerical solution of the equations and 
         in case of error, a random number is returned.'''
 
-        (firstCell, secondCell, thirdCell, fourthCell) = self.getPlayerCells(player)
 
-        print(firstCell, secondCell, thirdCell, fourthCell)
-        print(rationality1, rationality2)
+        u11, u12, u21, u22 = self.getPlayerCells(player)
+        lamb1, lamb2 = rationality1, rationality2
 
-        u11 = firstCell
-        u12 = secondCell
-        u21 = thirdCell
-        u22 = fourthCell
-
-        lamb1 = rationality1
-        lamb2 = rationality2
-
-        def equations(vars):
-
-            pc1, pc2 = vars
-            eq1 = (exp(lamb1*(pc2*u11+(1-pc2)*u12)))/(exp(lamb1*(pc2*u11+(1-pc2)*u12))+exp(lamb1*(pc2*u21+(1-pc2)*u22) )) - pc1 
-            #print("eq1", eq1)
-            eq2 = (exp(lamb2*(pc1*u11+(1-pc1)*u21)))/(exp(lamb2*(pc1*u11+(1-pc1)*u21))+exp(lamb2*(pc1*u12+(1-pc1)*u22)))  - pc2 
-            #print("eq2", eq2)
-            return [eq1, eq2]
-        
-    
         try:
-            #x, y =  fsolve(equations, (0.5, 0.5))
-            x, y = least_squares(equations, (0,5, 0,5), bounds = ((0, 1), (0, 1)))
-        except:
-            #if u12 and u21 are negative return 0 for y and x
+            result = least_squares(
+            self.equations, (0.5, 0.5), args=(u11, u12, u21, u22, lamb1, lamb2))
+            x, y = result.x
+            print("Optimization successful")
+        except Exception as e:
+            print(f"Optimization failed with error: {e}")
             if u12 < 0 and u21 < 0:
-                return (0,0)
+                print(f"Optimization failed with error: {e}")
+                return 0, 0
             else:
-                return (np.random.uniform(0,1), np.random.uniform(0,1))
-        return (x,y)
+                print(f"Optimization failed with error: {e}")
+                return np.random.uniform(0, 1), np.random.uniform(0, 1)
+        return x, y
 
 
     def getUtilityMean(self, player, chance2, chance0,  eta):

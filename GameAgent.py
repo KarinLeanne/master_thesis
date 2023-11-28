@@ -47,10 +47,12 @@ class GameAgent(Agent):
 
         # Each agent has a game
         if UV[0]:
-            self.uvpay = np.random.RandomState().rand(2)*3 - 1
-            self.game = Game.Game((self.uvpay[0],self.uvpay[1]))
+            uvpay = np.random.RandomState().rand(2)*3 - 1
+            #print(uvpay)
+            self.game = Game.Game((uvpay[0], uvpay[1]))
         if not UV[0]:
             self.game = Game.Game((UV[1],UV[2]))
+        
 
 
     def get_rewiring_prob(self, neighbors, alpha, beta):
@@ -93,7 +95,7 @@ class GameAgent(Agent):
 
         if np.random.uniform() < rewiring_p:
 
-            #Remove an edge
+            # Remove an edge
             if len(first_order_neighbours) > 1:        
                 P_con = self.get_rewiring_prob(first_order_neighbours, alpha, beta)
 
@@ -105,7 +107,7 @@ class GameAgent(Agent):
 
             second_order_neighbours = self.get_second_order_neighbours()
 
-            #Add an edge
+            # Add an edge
             second_order_neighbours = self.get_second_order_neighbours()
             if len(second_order_neighbours) > 0:
                 P_con = self.get_rewiring_prob(second_order_neighbours, alpha, beta)
@@ -122,7 +124,7 @@ class GameAgent(Agent):
 
 
             if not addedEdge and removedEdge:
-                # Pick a randomn nide
+                # Pick a randomn node
                 first_node = np.random.choice(self.model.graph.nodes())
                 all_nodes = list(self.model.graph.nodes())
                 neighbours = list(self.model.graph.neighbors(first_node)) + [first_node]
@@ -130,18 +132,6 @@ class GameAgent(Agent):
                 possible_nodes = [x for x in all_nodes if x not in neighbours] 
                 second_node = np.random.choice(list(possible_nodes))
                 self.model.graph.add_edge(first_node, second_node)
-
-            
-            if removedEdge:
-                self.removed_edges[0] += 1
-            else:
-                self.removed_edges[1] += 1
-                
-
-            if addedEdge:
-                self.added_edges[0] += 1
-            else:
-                self.removed_edges[1] += 1
         
 
     def getPlayerStrategyProbs(self, other_agent):
@@ -158,19 +148,19 @@ class GameAgent(Agent):
 
         '''
     
-        p0_g0_Prob_S0 , p1_g0_Prob_S0  = self.game.GetQreChance(0, self.rationality, other_agent.rationality)
-        p0_g1_Prob_S0 , p1_g1_Prob_S0  = other_agent.game.GetQreChance(0, self.rationality, other_agent.rationality)
+        p0_g0_Prob_S0 , p1_g0_Prob_S0  = self.game.getQreChance(0, self.rationality, other_agent.rationality)
+        p0_g1_Prob_S0 , p1_g1_Prob_S0  = other_agent.game.getQreChance(0, self.rationality, other_agent.rationality)
         return(p0_g0_Prob_S0 , p1_g0_Prob_S0,  p0_g1_Prob_S0 , p1_g1_Prob_S0)
     
 
-    def getGameChooserProb(chooser, chooser_Mean, not_chooser_mean):
+    def getGameChooserProb(chooser, chooser_mean, not_chooser_mean):
         '''This takes the game means and combines it with rationality to get the
-           chance of choosing the game of the agent who gets to choose'''
+           probability that the agent who gets to choose chooses his own game'''
                 
         if  chooser.model.alwaysSafe == True:
-            return 1 if chooser_Mean > not_chooser_mean else 0
+            return 1 if chooser_mean > not_chooser_mean else 0
         
-        rational_utility_chooser = exp(chooser.rationality * not_chooser_mean)
+        rational_utility_chooser = exp(chooser.rationality * chooser_mean)
         rational_utility_notchooser  = exp(chooser.rationality * not_chooser_mean)
 
         return rational_utility_chooser / (rational_utility_notchooser  + rational_utility_chooser)

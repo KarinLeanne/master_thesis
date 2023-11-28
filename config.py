@@ -2,8 +2,8 @@
 # A configuration file with hyperparameters.
 ###
 
-n_steps = 50
-n_agents = 10
+n_steps = 100             # Must be a multiple of 10
+n_agents = 100
 n_rounds = 3
 
 p_rewiring = 0.6           # Has to be between 0 and 1

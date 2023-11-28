@@ -43,9 +43,6 @@ def mean_measures_per_timestep(rewiring_p, alpha, beta, measures_of_interest = [
     measures = list(df_data_mean_std.loc[:, df_data_mean_std.columns.str.contains('M:')].columns)
     for measure in measures:
         df_data_mean_std[f"STD:{measure.replace('M:', '')}"] = df_model_full.groupby(["Step", "Network"])[measure].std().reset_index()[measure]
-
-    #print(tabulate(df_data_mean_std, headers = 'keys', tablefmt = 'psql'))
-    df_data_mean_std.to_excel(f"data/df_measures_over_timesteps_{params.n_steps}_{params.n_agents}_{params.n_rounds}.xlsx", index=False)
     return df_data_mean_std
 
 

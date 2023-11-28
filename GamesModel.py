@@ -43,7 +43,6 @@ class GamesModel(Model):
         self.netRat = netRat
         self.ratFunct = lambda f : f**2
         self.alwaysSafe = alwaysOwn
-        self.game_list = [None]*N
         
 
         # Generate the network.
@@ -70,8 +69,8 @@ class GamesModel(Model):
         # Collect model timestep data.
         self.datacollector = DataCollector(
             #model_reporters={"Mean Degree" : self.get_mean_degree, "Var of Degree" : self.get_variance_degree, "Avg Clustering" : self.get_clustering_coef, "Game Distribution" : "game_list"},
-            model_reporters={"M: Mean Degree" : self.get_mean_degree, "M: Var of Degree" : self.get_variance_degree, "M: Avg Clustering" : self.get_clustering_coef, "Game Distribution" : "game_list"},
-            agent_reporters={"playerPayoff": "totPayoff","Player risk aversion": "eta", "removedEdges": "removed_edges"}
+            model_reporters={"M: Mean Degree" : self.get_mean_degree, "M: Var of Degree" : self.get_variance_degree, "M: Avg Clustering" : self.get_clustering_coef},
+            agent_reporters={"playerPayoff": "totPayoff","Player risk aversion": "eta", "UV": "game.UV"}
         )
 
     
