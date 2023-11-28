@@ -2,11 +2,11 @@
 # A configuration file with hyperparameters.
 ###
 
-n_steps = 100             # Must be a multiple of 10
-n_agents = 100
+n_steps = 80               # Must be a multiple of 8
+n_agents = 20
 n_rounds = 3
 
-p_rewiring = 0.6           # Has to be between 0 and 1
+rewiring_p = 0.6           # Has to be between 0 and 1
 alpha = 0.5                # alpha is the homophilic parameter
 beta = 0.1                 # beta is the homophilic parameter
 

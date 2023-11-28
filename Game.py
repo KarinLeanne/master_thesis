@@ -35,6 +35,7 @@ class Game:
         return (firstCell, secondCell, thirdCell, fourthCell)
 
 
+    
     def equations(self, vars, u11, u12, u21, u22, lamb1, lamb2):
         pc1, pc2 = vars
         eq1 = np.exp(lamb1 * (pc2 * u11 + (1 - pc2) * u12)) / (
@@ -55,17 +56,13 @@ class Game:
         lamb1, lamb2 = rationality1, rationality2
 
         try:
-            result = least_squares(
-            self.equations, (0.5, 0.5), args=(u11, u12, u21, u22, lamb1, lamb2))
-            x, y = result.x
-            print("Optimization successful")
+            x, y = least_squares(
+            self.equations, (0.5, 0.5), args=(u11, u12, u21, u22, lamb1, lamb2)).x
         except Exception as e:
             print(f"Optimization failed with error: {e}")
             if u12 < 0 and u21 < 0:
-                print(f"Optimization failed with error: {e}")
                 return 0, 0
             else:
-                print(f"Optimization failed with error: {e}")
                 return np.random.uniform(0, 1), np.random.uniform(0, 1)
         return x, y
 

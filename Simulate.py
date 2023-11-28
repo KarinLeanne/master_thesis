@@ -82,7 +82,7 @@ def simulate(N, rewiring_p, alpha, beta, network, rounds, steps, netRat = 0.1, p
     
     # For network data, reset the index and rename the index column to "step"
     network_data.reset_index(inplace=True)
-    network_data.rename(columns={"index": "step"}, inplace=True)
+    network_data.rename(columns={"index": "Step"}, inplace=True)
     #print(tabulate(network_data, headers = 'keys', tablefmt = 'psql'))
 
     return network_data, agent_data

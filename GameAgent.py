@@ -29,7 +29,7 @@ class GameAgent(Agent):
         self.eta_base = self.eta        # eta_base is the default risk aversion parameter
         self.alpha = alpha              # alpha is the homophilic parameter
         self.beta = beta                # beta controls homophily together with alpha
-        self.p_rewiring = rewiring_p
+        self.rewiring_p = rewiring_p
         self.totPayoff = 0              # totPayoff is the (starting) total payoff 
 
         self.model = model
@@ -235,4 +235,4 @@ class GameAgent(Agent):
             self.eta = rand.random()*2
 
         
-        self.rewire(self.alpha, self.beta, self.p_rewiring)
+        self.rewire(self.alpha, self.beta, self.rewiring_p)

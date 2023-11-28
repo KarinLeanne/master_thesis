@@ -10,6 +10,7 @@ import pandas as pd
 from tabulate import tabulate
 from IPython.display import display
 import scipy.stats as st
+import os
 
 
 params = utils.get_config()
@@ -31,7 +32,7 @@ def mean_measures_per_timestep(rewiring_p, alpha, beta, measures_of_interest = [
 
     for network in networks:
         # Data_model_partial contains data from one network
-        df_model_partial, df_agent_partial = sim.simulate(N = params.n_agents, rewiring_p = rewiring_p, alpha=alpha, beta=beta, network=network, rounds = params.n_rounds, steps = params.n_steps, netRat = 0.1, partScaleFree = 1, alwaysSafe = False, UV=(False,1,2))
+        df_model_partial, _ = sim.simulate(N = params.n_agents, rewiring_p = rewiring_p, alpha=alpha, beta=beta, network=network, rounds = params.n_rounds, steps = params.n_steps, netRat = 0.1, partScaleFree = 1, alwaysSafe = False, UV=(False,1,2))
         # Add column specifying which network the data is for
         df_model_partial['Network'] = network[0]
         # Add partial data to the network that needsa to contain the full data
@@ -46,29 +47,35 @@ def mean_measures_per_timestep(rewiring_p, alpha, beta, measures_of_interest = [
     return df_data_mean_std
 
 
-def effect_of_rewiring_p_on_variance_and_clustering(alpha, beta):
+def effect_of_rewiring_p_on_variance_and_clustering(alpha = params.alpha, beta = params.beta):
     '''
     Description: Experiment with the effect of different values of the rewiring probability on the variance and clustering of the network. Mean should be maintained.
     Input: 
         - alpha: The homophilic parameter 
         - beta: Controls homophily together with alpha
     '''
-    df_rewiring_p = pd.DataFrame()
-    rewiring_ps = np.linspace(0.0, 1.0, 5)
+    if os.path.isfile(f"data/df_influence_rewiring_prob_{params.n_steps}_{params.n_agents}_{params.n_rounds}.xlsx"):
+        df_rewiring_p = pd.read_excel(f"data/df_influence_rewiring_prob_{params.n_steps}_{params.n_agents}_{params.n_rounds}.xlsx")
+    else:
+        df_rewiring_p = pd.DataFrame()
+        rewiring_ps = np.linspace(0.0, 1.0, 5)
 
-    for rewiring_p in rewiring_ps:
-        # Data_model_partial contains data from one network
-        df = mean_measures_per_timestep(rewiring_p, alpha, beta, measures_of_interest= ["M: Var of Degree", "M: Avg Clustering"])
-        df['rewiring_p'] = rewiring_p
-        # Add partial data to the network that needsa to contain the full data
-        df_rewiring_p = pd.concat([df_rewiring_p, df])
+        for rewiring_p in rewiring_ps:
+            # Data_model_partial contains data from one network
+            df = mean_measures_per_timestep(rewiring_p, alpha, beta, measures_of_interest= ["M: Var of Degree", "M: Avg Clustering"])
+            df['rewiring_p'] = rewiring_p
+            # Add partial data to the network that needsa to contain the full data
+            df_rewiring_p = pd.concat([df_rewiring_p, df])
 
-    #print(tabulate(df_rewiring_p, headers = 'keys', tablefmt = 'psql'))
+        #print(tabulate(df_rewiring_p, headers = 'keys', tablefmt = 'psql'))
 
-    df_rewiring_p.to_excel(f"data/df_influence_rewiring_prob_{params.n_steps}_{params.n_agents}_{params.n_rounds}.xlsx", index=False)
+        df_rewiring_p.to_excel(f"data/df_influence_rewiring_prob_{params.n_steps}_{params.n_agents}_{params.n_rounds}.xlsx", index=False)
+
+    # Vizualize results of experiment
+    viz.effect_variable_on_network_measures(df_rewiring_p, 'rewiring_p')
 
 
-def effect_of_triangle_prob_on_variance_and_clustering(rewiring_p, alpha, beta):
+def effect_of_triangle_prob_on_variance_and_clustering(rewiring_p = params.rewiring_p, alpha = params.alpha, beta = params.beta):
     '''
     Description: Experiment with the effect of different values of the triangle prob on the variance and clustering of the network. 
     Input: 
@@ -76,21 +83,27 @@ def effect_of_triangle_prob_on_variance_and_clustering(rewiring_p, alpha, beta):
         - alpha: The homophilic parameter 
         - beta: Controls homophily together with alpha
     '''
-    df_triangle_prob = pd.DataFrame()
+    if os.path.isfile(f"data/df_influence_triangle_prob_{params.n_steps}_{params.n_agents}_{params.n_rounds}.xlsx"):
+        df_triangle_prob = pd.read_excel(f"data/df_influence_triangle_prob_{params.n_steps}_{params.n_agents}_{params.n_rounds}.xlsx")
+    else:
+        df_triangle_prob = pd.DataFrame()
 
-    triangle_probs = np.linspace(0.0, 1.0, 5)
+        triangle_probs = np.linspace(0.0, 1.0, 5)
 
-    for triangle_p in triangle_probs:
-         # Data_model_partial contains data from one network
-        df = mean_measures_per_timestep(rewiring_p, alpha, beta, measures_of_interest= ["M: Var of Degree", "M: Avg Clustering"], networks=[("HK", 4, triangle_p)])
-        df['triangle_p'] = triangle_p
-        # Add partial data to the network that needsa to contain the full data
-        df_triangle_prob = pd.concat([df_triangle_prob, df])
-    
-    df_triangle_prob.to_excel(f"data/df_influence_triangle_prob_{params.n_steps}_{params.n_agents}_{params.n_rounds}.xlsx", index=False)
+        for triangle_p in triangle_probs:
+            # Data_model_partial contains data from one network
+            df = mean_measures_per_timestep(rewiring_p, alpha, beta, measures_of_interest= ["M: Var of Degree", "M: Avg Clustering"], networks=[("HK", 4, triangle_p)])
+            df['triangle_p'] = triangle_p
+            # Add partial data to the network that needsa to contain the full data
+            df_triangle_prob = pd.concat([df_triangle_prob, df])
+        
+        df_triangle_prob.to_excel(f"data/df_influence_triangle_prob_{params.n_steps}_{params.n_agents}_{params.n_rounds}.xlsx", index=False)
+
+    # Vizualize results of experiment
+    viz.effect_variable_on_network_measures(df_triangle_prob, 'triangle_p')
         
 
-def effect_of_alpha_beta_on_variance_and_clustering(rewiring_p, alpha, beta):
+def effect_of_alpha_beta_on_variance_and_clustering(rewiring_p = params.rewiring_p, alpha = params.alpha, beta = params.beta):
     '''
     Description: Experiment with the effect alpha and beta on the variance and clustering of the network. 
     Input: 
@@ -101,26 +114,47 @@ def effect_of_alpha_beta_on_variance_and_clustering(rewiring_p, alpha, beta):
     
     df_alpha = pd.DataFrame()
     alphas = np.linspace(0.0, 1.0, 5)
+    if os.path.isfile(f"data/df_influence_alpha_{params.n_steps}_{params.n_agents}_{params.n_rounds}.xlsx"):
+        df_alpha = pd.read_excel(f"data/df_influence_alpha_{params.n_steps}_{params.n_agents}_{params.n_rounds}.xlsx")
+        df_beta = pd.read_excel(f"data/df_influence_beta_{params.n_steps}_{params.n_agents}_{params.n_rounds}.xlsx")
+    else:
+        for alpha in alphas:
+            # Data_model_partial contains data from one network
+            df = mean_measures_per_timestep(rewiring_p, alpha, beta, measures_of_interest= ["M: Var of Degree", "M: Avg Clustering"])
+            df['alpha'] = alpha
+            # Add partial data to the network that needsa to contain the full data
+            df_alpha = pd.concat([df_alpha, df])
 
-    for alpha in alphas:
-        # Data_model_partial contains data from one network
-        df = mean_measures_per_timestep(rewiring_p, alpha, beta, measures_of_interest= ["M: Var of Degree", "M: Avg Clustering"])
-        df['alpha'] = alpha
-        # Add partial data to the network that needsa to contain the full data
-        df_alpha = pd.concat([df_alpha, df])
+        df_beta = pd.DataFrame()    
+        betas= np.linspace(0.0, 1.0, 5)
 
-    df_beta = pd.DataFrame()    
-    betas= np.linspace(0.0, 1.0, 5)
+        for beta in betas:
+            # Data_model_partial contains data from one network
+            df = mean_measures_per_timestep(rewiring_p, alpha, beta, measures_of_interest= ["M: Var of Degree", "M: Avg Clustering"])
+            df['beta'] = beta
+            # Add partial data to the network that needsa to contain the full data
+            df_beta = pd.concat([df_beta, df])
 
-    for beta in betas:
-        # Data_model_partial contains data from one network
-        df = mean_measures_per_timestep(rewiring_p, alpha, beta, measures_of_interest= ["M: Var of Degree", "M: Avg Clustering"])
-        df['beta'] = beta
-        # Add partial data to the network that needsa to contain the full data
-        df_beta = pd.concat([df_beta, df])
+        df_alpha.to_excel(f"data/df_influence_alpha_{params.n_steps}_{params.n_agents}_{params.n_rounds}.xlsx", index=False)
+        df_beta.to_excel(f"data/df_influence_beta_{params.n_steps}_{params.n_agents}_{params.n_rounds}.xlsx", index=False)
 
-    df_alpha.to_excel(f"data/df_influence_alpha_{params.n_steps}_{params.n_agents}_{params.n_rounds}.xlsx", index=False)
-    df_beta.to_excel(f"data/df_influence_beta_{params.n_steps}_{params.n_agents}_{params.n_rounds}.xlsx", index=False)
+    # Vizualize results experiment
+    viz.effect_variable_on_network_measures(df_alpha, 'alpha')
+    viz.effect_variable_on_network_measures(df_beta, 'beta')
+
+def time_series_mean_network_measures():
+
+    # Only obtain data if data does not already exist
+    if os.path.isfile(f"data/df_measures_over_timesteps_{params.n_steps}_{params.n_agents}_{params.n_rounds}.xlsx"):
+        df_measures_over_timesteps = pd.read_excel(f"data/df_measures_over_timesteps_{params.n_steps}_{params.n_agents}_{params.n_rounds}.xlsx")
+    else:
+        df_measures_over_timesteps = mean_measures_per_timestep(params.rewiring_p, params.alpha, params.beta) 
+        df_measures_over_timesteps.to_excel(f"data/df_measures_over_timesteps_{params.n_steps}_{params.n_agents}_{params.n_rounds}.xlsx", index=False)
+    
+
+    # Vizualize results experiment
+    viz.network_measures_over_timesteps(df_measures_over_timesteps)
+
 
 
         

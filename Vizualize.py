@@ -17,7 +17,6 @@ import matplotlib.cm as cm
 import seaborn as sns
 
 import utils
-import old_code.Simulate_old as sim
 
 params = utils.get_config()
 
