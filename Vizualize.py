@@ -15,14 +15,16 @@ from tabulate import tabulate
 from scipy.ndimage.filters import gaussian_filter
 import matplotlib.cm as cm
 import seaborn as sns
+import ast
+import json
+
 
 import utils
 
 params = utils.get_config()
 
 
-
-def viz_time_series_agent_data(df, measure, name_measure):
+def viz_time_series_agent_data_single(df, measure, name_measure, NH = False):
     # Calculate mean and standard deviation of risk aversion  per step
     grouped_data = df.groupby('Step')[measure].agg(['mean', 'std'])
 
@@ -55,33 +57,92 @@ def viz_time_series_agent_data(df, measure, name_measure):
     plt.tight_layout()
 
     # Save plot
-    plt.savefig(f"plots/chap2/{name_measure}__{params.n_steps}_{params.n_agents}_{params.n_rounds}.png")
+    path = utils.make_path("Figures", "GameChoice", "Influence_Rewiring_p_On_Network")
+    if NH:
+        path = utils.make_path("Figures", "GameChoice", f"{name_measure}_NH")
+        plt.savefig(path)
+    else:
+        path = utils.make_path("Figures", "GameChoice", f"{name_measure}")
+        plt.savefig(path)
+
     # Close the figure to prevent overlap
     plt.close() 
 
 
-def viz_time_series_agent_data_rationality(df):
-    viz_time_series_agent_data(df, "Player risk aversion", "Player Risk Aversion")
+def viz_time_series_agent_data_rationality_single(df, NH = False):
+    viz_time_series_agent_data_single(df, "Player risk aversion", "Player Risk Aversion", NH = False)
 
 
-def viz_time_series_agent_data_pay_off(df):
-    viz_time_series_agent_data(df, "playerPayoff", "Player Wealth")
+def viz_time_series_agent_data_pay_off_single(df, NH = False):
+    viz_time_series_agent_data_single(df, "Wealth", "Player Wealth", NH = False)
 
 
-def viz_wealth_distribution(df):
+def viz_time_series_agent_data_multiple(df, measure, name_measure, indep_var):
+    # Create a new subplot for the time series
+    fig, ax = plt.subplots(figsize=(10, 8))
+    
+    # Use sautomatic color cycling
+    sns.set_palette("husl")
+
+    # Iterate over unique values of indep_var
+    for value in df[indep_var].unique():
+        # Filter the DataFrame for each value of indep_var
+        subset_data = df[df[indep_var] == value]
+        
+        # Calculate mean and standard deviation of the measure per step
+        grouped_data = subset_data.groupby('Step')[measure].agg(['mean', 'std'])
+        
+        # Plot the time series with mean and standard deviation
+        ax.plot(grouped_data.index, grouped_data['mean'], label=f'{indep_var}={value}')
+        ax.fill_between(grouped_data.index,
+                        grouped_data['mean'] - grouped_data['std'],
+                        grouped_data['mean'] + grouped_data['std'],
+                        alpha=0.1)
+
+    # Add labels and title to the plot
+    ax.set_xlabel('Step')
+    ax.set_ylabel(name_measure)
+    ax.set_title(f"Time Series of {name_measure} for Different {indep_var} Values")
+    ax.legend()
+
+    # Adjust layout to prevent clipping of labels
+    plt.tight_layout()
+
+    # Save plot
+    path = utils.make_path("Figures", "GameChoice", f"{name_measure}_{indep_var}_time_series")
+    plt.savefig(path)
+    
+
+
+    # Close the figure to prevent overlap
+    plt.close()
+
+
+def viz_time_series_agent_data_rationality_for_rat_dist(df):
+    viz_time_series_agent_data_multiple(df, "Player risk aversion", "Player Risk Aversion", "Rationality Distribution")
+
+def viz_time_series_agent_data_pay_off_for_rat_dist(df):
+    viz_time_series_agent_data_multiple(df, "Wealth", "Player Wealth", "Rationality Distribution")
+
+def viz_time_series_agent_data_rationality_for_util(df):
+    viz_time_series_agent_data_multiple(df, "Player risk aversion", "Player Risk Aversion", "Utility Function")
+
+def viz_time_series_agent_data_pay_off_for_util(df):
+    viz_time_series_agent_data_multiple(df, "Wealth", "Player Wealth", "Utility Function")
+
+
+
+
+def plot_wealth_distribution(df, NH = False):
 
     stepsPlot = [*range(int(params.n_steps / 4), params.n_steps + 1, int(params.n_steps / 4))]
 
-    # Create a figure with four subplots for violin plots
+    # Create figures with four subplots
     fig_violin, axs_violin = plt.subplots(2, 2, figsize=(12, 8))
+    fig_kde, axs_kde = plt.subplots(2, 2, figsize=(12, 8))
 
     # Flatten the axs_violin array to iterate over subplots
     axs_violin = axs_violin.flatten()
-
-    # Create a figure with four subplots for KDE plots
-    fig_kde, axs_kde = plt.subplots(2, 2, figsize=(12, 8))
-
-    # Flatten the axs_kde array to iterate over subplots
     axs_kde = axs_kde.flatten()
 
     # Iterate over selected steps and create violin and KDE plots
@@ -89,29 +150,76 @@ def viz_wealth_distribution(df):
         subset_data = df[df['Step'] == step]
 
         # Violin plot
-        sns.violinplot(x=subset_data['Step'], y=subset_data['playerPayoff'], ax=axs_violin[idx], color='m')
+        sns.violinplot(x=subset_data['Step'], y=subset_data['Wealth'], ax=axs_violin[idx], color='m')
         axs_violin[idx].set_title(f'Step {step}')
         axs_violin[idx].set_xlabel('Step')
         axs_violin[idx].set_ylabel('Player Payoff')
 
         # KDE plot
-        sns.kdeplot(subset_data['playerPayoff'], ax=axs_kde[idx], color='m', fill=True)
+        sns.kdeplot(subset_data['Wealth'], ax=axs_kde[idx], color='m', fill=True)
         axs_kde[idx].set_title(f'Step {step}')
         axs_kde[idx].set_xlabel('Player Payoff')
         axs_kde[idx].set_ylabel('Density')
 
+
     # Adjust layout to prevent clipping of labels
     plt.tight_layout()
 
-    # Save Plots
-    # Save violin plot
-    fig_violin.savefig(f"plots/chap2/Wealth_violin_{params.n_steps}_{params.n_agents}_{params.n_rounds}.png")
-    
-    # Save KDE plot
-    fig_kde.savefig(f"plots/chap2/Wealth_KDE_{params.n_steps}_{params.n_agents}_{params.n_rounds}.png")
+    if NH:
+        # Save Plots
+        path = utils.make_path("Figures", "GameChoice", "Wealth_Violin_NH")
+        plt.savefig(path)
+        plt.close()
+
+        path = utils.make_path("Figures", "GameChoice", "Wealth_KDE_NH")
+        plt.savefig(path)
+        plt.close()
+    else:
+        # Save Plots
+        path = utils.make_path("Figures", "GameChoice", "Wealth_Violin")
+        plt.savefig(path)
+        plt.close()
+
+        path = utils.make_path("Figures", "GameChoice", "Wealth_KDE")
+        plt.savefig(path)
+        plt.close()
 
 
-def viz_corrrelation(df):
+def cumulative_distribution_plot(ax, data, step):
+    ax.plot(np.sort(data), np.linspace(0, 1, len(data), endpoint=False), label=f'Step {step}')
+    ax.set_title(f'Step {step}')
+    ax.set_xlabel('Player Payoff')
+    ax.set_ylabel('Density')
+
+
+def plot_cml_wealth(df, NH=False):
+    steps_plot = [*range(int(params.n_steps / 4), params.n_steps + 1, int(params.n_steps / 4))]
+
+    # Create a single figure for all CML plots
+    fig_cml, ax_cml = plt.subplots(figsize=(12, 8))
+
+    # Iterate over selected steps and create cumulative distribution plots
+    for step in steps_plot:
+        subset_data = df[df['Step'] == step]
+        cumulative_distribution_plot(ax_cml, subset_data['Wealth'], step)
+
+    # Add legend
+    ax_cml.legend()
+
+    # Adjust layout to prevent clipping of labels
+    plt.tight_layout()
+
+    # Save Cumulative Distribution Plot
+    if NH:
+        path = utils.make_path("Figures", "GameChoice", "Wealth_CML_NH")
+        plt.savefig(path)
+    else:
+        path = utils.make_path("Figures", "GameChoice", "Wealth_CML")
+        plt.savefig(path)
+    plt.close()
+
+
+def viz_corrrelation(df, NH = False):
 
     stepsPlot = [*range(int(params.n_steps / 4), params.n_steps + 1, int(params.n_steps / 4))]
 
@@ -123,7 +231,7 @@ def viz_corrrelation(df):
         subset_data = df[df['Step'] == step]
 
         # Scatter plot with regression line
-        sns.regplot(x='Player risk aversion', y='playerPayoff', data=subset_data, scatter_kws={'alpha': 0.5}, ax=axs[idx])
+        sns.regplot(x='Player risk aversion', y='Wealth', data=subset_data, scatter_kws={'alpha': 0.5}, ax=axs[idx])
         axs[idx].set_title(f'Scatter Plot at Step {step}')
         axs[idx].set_xlabel('Risk Averseness')
         axs[idx].set_ylabel('Pay-off')
@@ -131,7 +239,12 @@ def viz_corrrelation(df):
     # Adjust layout to prevent clipping of labels
     plt.tight_layout()
 
-    plt.savefig(f"plots/chap2/Correlation_Wealth_Risk_aversion__{params.n_steps}_{params.n_agents}_{params.n_rounds}.png")
+    if NH:
+        path = utils.make_path("Figures", "GameChoice", "Correlation_Wealth_Risk_aversion_NH")
+        plt.savefig(path)
+    else:
+        path = utils.make_path("Figures", "GameChoice", "Correlation_Wealth_Risk_aversion")
+        plt.savefig(path)
     # Close the figure to prevent overlap
     plt.close()  
 
@@ -154,15 +267,17 @@ def viz_UV_scatter(df):
     ax.scatter(U, V)
     ax.set_xlabel("U")
     ax.set_ylabel("V")
-    
-    plt.savefig(f"plots/chap2/UV_scatter__{params.n_steps}_{params.n_agents}_{params.n_rounds}.png")
+
+    path = utils.make_path("Figures", "GameChoice", "UV_scatter")
+    plt.savefig(path)
     # Close the figure to prevent overlap
     plt.close()  
 
 
-def viz_UV_heatmap(df):
+def viz_UV_heatmap(df, NH=False):
     sigma = 16
-    stepsPlot = [*range(int(params.n_steps / 8), params.n_steps + 1, int(params.n_steps / 8))]  # Adjusted for 2 rows and 4 columns
+
+    stepsPlot = [int(params.n_steps * i / 8) for i in range(1, 9)]
 
     # Create a 2x4 grid of subplots with equal column widths
     fig, axes = plt.subplots(nrows=2, ncols=4, figsize=(15, 8), gridspec_kw={'width_ratios': [1, 1, 1, 1]})
@@ -173,16 +288,17 @@ def viz_UV_heatmap(df):
 
     for idx, step in enumerate(stepsPlot):
         dfPlot = df.loc[df['Step'] == step]
+        U_step = dfPlot['UV'].apply(lambda x: x[0]).tolist()
+        V_step = dfPlot['UV'].apply(lambda x: x[1]).tolist()
+        all_U_values.append(U_step)
+        all_V_values.append(V_step)
 
-        U = dfPlot['UV'].apply(lambda x: x[0])
-        V = dfPlot['UV'].apply(lambda x: x[1])
-
-        # Append U and V values to the lists
-        all_U_values.extend(U)
-        all_V_values.extend(V)
+    # Flatten the lists to get values for all steps
+    U = [item for sublist in all_U_values for item in sublist]
+    V = [item for sublist in all_V_values for item in sublist]
 
     # Calculate common extent based on the minimum and maximum values of U and V
-    common_extent = [np.min(all_U_values), np.max(all_U_values), np.min(all_V_values), np.max(all_V_values)]
+    common_extent = [np.min(U), np.max(U), np.min(V), np.max(V)]
 
     for idx, step in enumerate(stepsPlot):
         dfPlot = df.loc[df['Step'] == step]
@@ -209,8 +325,13 @@ def viz_UV_heatmap(df):
     # Adjust layout to prevent clipping of titles and colorbar
     plt.tight_layout(rect=[0, 0, 0.91, 1])
 
-    plt.savefig(f"plots/chap2/UV_heatmap_{params.n_steps}_{params.n_agents}_{params.n_rounds}.png")
-    plt.show()
+    if NH:
+        path = utils.make_path("Figures", "GameChoice", "UV_heatmap_NH")
+        plt.savefig(path)
+    else:
+        path = utils.make_path("Figures", "GameChoice", "UV_heatmap")
+        plt.savefig(path)
+    plt.close()
 
 
 """
@@ -261,25 +382,6 @@ def viz_deg_distr(G):
 
 
 
-def heatmap(N, rounds, steps):
-    '''Compute heatmap for various U and V values for payoffs'''
-
-    U = np.linspace(0,1,10)
-    V = np.linspace(0,1,10)
-    heat_map = []
-    data = []
-
-    for u in U:
-        temp = []
-        temp2 = []
-        for v in V:
-            Payoffs = sim.simulateANDWealth(N, rounds, steps, netRat = 0.1, partScaleFree = 1, alwaysSafe = False, UV=(True,u,v))
-            #heatmap[u][v] = gini_new(np.array(Payoffs[-1]))
-            temp.append(sim.gini_new(np.array(Payoffs[-1])))
-            temp2.append(Payoffs[-1])
-        heat_map.append(temp)
-        data.append(temp2)
-
 def viz_effect_clustering_coef(name, p, data):
     fig, ax = plt.subplots()
     ax.scatter(p, data, c="green", alpha=0.5, marker='x')
@@ -290,6 +392,8 @@ def viz_effect_clustering_coef(name, p, data):
 
 
 def network_measures_over_timesteps(df):
+
+    #print(tabulate(df, headers = 'keys', tablefmt = 'psql'))
 
     # Get steps, used networks and used measures from dataframe
     steps = np.arange(df['Step'].nunique())
@@ -322,11 +426,14 @@ def network_measures_over_timesteps(df):
         ax.set_title(col)
 
     fig.suptitle("Network measures over time")
-    
-    plt.savefig(f"plots/chap1/network_measures_over_time__{params.n_steps}_{params.n_agents}_{params.n_rounds}.png")
+
+    path = utils.make_path("Figures", "Networks", "Network_Measures_over_Time")
+    plt.savefig(path)
+    plt.close()
 
 
 def effect_variable_on_network_measures(df, variable):
+
 
     # Get steps, used networks and used measures from dataframe
     steps = np.arange(df['Step'].nunique())
@@ -366,19 +473,155 @@ def effect_variable_on_network_measures(df, variable):
 
         # displaying the title
         fig.suptitle(f"Effect of {variable} on {measure.replace('M:', '')}")
-        plt.savefig(f"plots/chap1/Effect_of_{variable}_on_{measure.replace('M:', '')}_{params.n_steps}_{params.n_agents}_{params.n_rounds}.png")
+        path = utils.make_path("Figures", "Networks", f"Effect_of_{variable}_on_{measure.replace('M:', '')}")
+        plt.savefig(path)
+        plt.close()
 
                     
+def vizualize_effect_of_rationality_on_QRE(df):
+
+    # Create 3D scatter plot
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    ax.scatter(df['Mean Lambda'], df['Std Dev Lambda'], df['QRE Result'], c='blue', marker='o')
+
+    ax.set_xlabel('Mean Lambda')
+    ax.set_ylabel('Std Dev Lambda')
+    ax.set_zlabel('QRE Result')
+
+    path = utils.make_path("Figures", "GameChoice", "Effect_of_Rationality_on_QRE")
+    plt.savefig(path)
+    plt.close()
 
 
+
+def vizualize_measure_over_time(df, measure):
+
+    #print(tabulate(df, headers = 'keys', tablefmt = 'psql'))
+    # Count the unique games at each timestep
+    
+    df_grouped = df.groupby(['Step', 'Round'])[measure].mean().reset_index()
+
+    # Calculate mean and std over simulations
+    mean_df = df_grouped.groupby('Step')[measure].mean().reset_index()
+    std_df = df_grouped.groupby('Step')[measure].std().reset_index()
+
+    # Plot mean and std
+    # Plot mean and shaded area for std
+    plt.plot(mean_df['Step'], mean_df[measure], label='Mean Games', color='b')
+    plt.fill_between(mean_df['Step'], mean_df[measure] - std_df[measure], mean_df[measure] + std_df[measure], color='b', alpha=0.3)
+    plt.xlabel('Timestep')
+    plt.ylabel(measure)
+    plt.legend()
+
+    path = utils.make_path("Figures", "Networks", f"{measure}_over_time")
+    plt.savefig(path)
+    plt.close()
+
+def vizualize_histogram_over_time(df, measure, bins=10):
+    stepsPlot = [*range(int(params.n_steps / 4), params.n_steps + 1, int(params.n_steps / 4))]
+
+    # Create a figure with four subplots for plots
+    fig, axs = plt.subplots(2, 2, figsize=(12, 8))
+
+    # Flatten the axs array to iterate over subplots
+    axs = axs.flatten()
+
+    # Iterate over selected steps and create plots
+    for idx, step in enumerate(stepsPlot):
+        subset_data = df[df['Step'] == step]
+        axs[idx].hist(subset_data[measure], edgecolor='black', bins=bins)
+        axs[idx].set_xlabel(measure)
+        axs[idx].set_ylabel('Frequency')
+        axs[idx].set_title(f'Step {step}')
+
+
+    # Adjust layout to prevent clipping of labels
+    fig.tight_layout()
+
+    path = utils.make_path("Figures", "Networks", f"Histogram_{measure}")
+    plt.savefig(path)
+
+    plt.close()
+    
+
+def vizualize_Degree_Distr(df, measure, bins=10):
+    stepsPlot = [*range(int(params.n_steps / 4), params.n_steps + 1, int(params.n_steps / 4))]
+
+    # Create a figure with four subplots for plots
+    fig, axs = plt.subplots(2, 2, figsize=(12, 8))
+
+    # Flatten the axs array to iterate over subplots
+    axs = axs.flatten()    
+
+    # Iterate over selected steps and create plots
+    for idx, step in enumerate(stepsPlot):
+        subset_data = df[df['Step'] == step]
         
+        combined_degree_distribution = []
+        for degree_list in subset_data['Degree Distr']:
+            combined_degree_distribution.extend(json.loads(degree_list))
+
+        axs[idx].hist(combined_degree_distribution, edgecolor='black', bins=bins)
+        axs[idx].set_xlabel(measure)
+        axs[idx].set_ylabel('Frequency')
+        axs[idx].set_title(f'Step {step}')
 
 
+    # Adjust layout to prevent clipping of labels
+    fig.tight_layout()
+
+    # Save Plots
+    path = utils.make_path("Figures", "Networks", f"Degree_Distr_{measure}")
+    plt.savefig(path)
+    plt.close()
 
 
+def plot_speed_network_vs_speed_games(df, measure):
+    plt.figure(figsize=(10, 6))
 
+    # Create a scatter plot with colorbar
+    scatter = plt.scatter(x=df['Speed_Ratio'], y=df[measure], c=df['rewiring_p'], cmap='viridis', s=100)
+    
+    plt.title(f'Scatter Plot of {measure}'.replace("_", " ") + " vs Speed Ratio with Colorbar'")
+    plt.xlabel('Speed Ratio (e_g / e_n)')
+    plt.ylabel(f"{measure}".replace("_", " "))
+    
+    # Add colorbar
+    cbar = plt.colorbar(scatter)
+    cbar.set_label('Rewiring Probability')
 
+    # Save Plots
+    path = utils.make_path("Figures", "UpdatingMechanism", f"Plot of {measure} vs Speed Ratio")
+    plt.savefig(path)
+    plt.close()
 
+def plot_speed_ratio_time_series(df, values):
 
+    rewiring_probabilities = values[::2]
 
+    for rewiring_p in rewiring_probabilities:
+
+        subset = df[df['rewiring_p'] == rewiring_p]
+        df_grouped = subset.groupby(['Step', 'Round'])["Speed_Ratio"].mean().reset_index()
+
+        # Calculate mean and std over simulations
+        mean_df = df_grouped.groupby('Step')["Speed_Ratio"].mean().reset_index()
+        std_df = df_grouped.groupby('Step')["Speed_Ratio"].std().reset_index()
+
+        # Group the DataFrame by 'rewiring_p' and iterate over groups
+        plt.plot(mean_df['Step'], mean_df['Speed_Ratio'], label=f'rewiring_p={rewiring_p}')
+        plt.fill_between(mean_df['Step'], mean_df["Speed_Ratio"] - std_df["Speed_Ratio"], mean_df["Speed_Ratio"] + std_df["Speed_Ratio"], alpha=0.3)
+
+    # Customize the plot
+    plt.xlabel('Step')
+    plt.ylabel('Speed Ratio')
+    plt.title('Speed Ratio over Time for Different Rewiring Probabilities')
+    plt.legend()
+    plt.grid(True)
+
+    # Save Plots
+    path = utils.make_path("Figures", "UpdatingMechanism", f"Speed Ratio Time Series")
+    plt.savefig(path)
+    plt.close()
 

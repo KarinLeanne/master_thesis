@@ -3,32 +3,54 @@
 ###
 
 
-import Simulate as sim
-import Vizualize as viz
 from IPython.display import display
+import os
+import pandas as pd
+import networkx as nx
+
+
 import utils
 import ExperimentsNetwork as expN
 import ExperimentsGameChoice as expGC
-import os
-import pandas as pd
-
-import networkx as nx
+import ExperimentsUpdating as expU
+import Sobol
 
 params = utils.get_config()
 
 def main():
-    # Run the following experiments for chapter 1
-    """
+
+    
+    # Experiments on Gamechoice
+    expGC.baselineExperiments()
+    
+    expGC.baselineExperiments_NH()
+    expGC.effect_of_risk_distribution_on_wealth()
+    expGC.effect_of_utility_function_on_wealth()
+    expGC.effect_of_rationality_on_QRE()
+    expGC.track_num_games_in_pop()
+    expGC.gini_over_time()
+    
+
+    # Experiments on Updating Mechanisms
+    expU.speedOfUpdatingRewiring_vs_UV()
+
+
+    # Run global sensitivity analysis
+    Sobol.global_sensitivity_analysis()
+
+    # Experiments on Network
+    expN.run_default_data()
     expN.time_series_mean_network_measures()
     expN.effect_of_alpha_beta_on_variance_and_clustering()
     expN.effect_of_rewiring_p_on_variance_and_clustering()
     expN.effect_of_triangle_prob_on_variance_and_clustering()
-    """
-
-    # Run the following experiments for chapter 2
     
-    expGC.baselineExperiments()
 
+
+
+
+    
+    
     
 
 if __name__ == "__main__":

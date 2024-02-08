@@ -4,10 +4,13 @@
 
 import numpy as np
 import pandas as pd
-import itertools
-from IPython.display import display
-import GamesModel as gm
 from tabulate import tabulate
+#from IPython.display import display
+
+import GamesModel as gm
+import utils
+
+params = utils.get_config()
 
 def gini_new(array):
     """Calculate the Gini coefficient of a numpy array."""
@@ -27,7 +30,20 @@ def gini_new(array):
 
     return ((np.sum((2 * index - n  - 1) * array)) / (n * np.sum(array))) 
 
-def simulate(N, rewiring_p, alpha, beta, network, rounds, steps, netRat = 0.1, partScaleFree = 1, alwaysOwn = False, alwaysSafe = False, UV=(True,None,None)):
+def simulate(N = params.n_agents, 
+             rewiring_p = params.rewiring_p, 
+             alpha = params.alpha, 
+             beta = params.beta, 
+             network = params.default_network, 
+             rounds = params.n_rounds, 
+             steps = params.n_steps, 
+             netRat = 0.1, 
+             partScaleFree = 1, 
+             alwaysOwn = False, 
+             alwaysSafe = False, 
+             UV=(True,None,None,False), 
+             risk_distribution = "uniform", 
+             utility_function = "isoelastic"):
     '''
     Description: Run the simulation for a certain number of rounds and steps using the given parameters
     Inputs:
@@ -41,29 +57,24 @@ def simulate(N, rewiring_p, alpha, beta, network, rounds, steps, netRat = 0.1, p
         - AlwaysOwn: Boolean, if true always choose the own strategy
         - UV: A truple specifing whether the UV space should be generated randomly as well as the default values for U and V
     Outputs:
-        - network_data: The data collected in network level
+        - model_data: The data collected in network level
         - agent_data: The data collected on agent level
     '''
 
     #agent_data = pd.DataFrame()
-    network_data = pd.DataFrame(columns=['Round'])
+    model_data = pd.DataFrame(columns=['Round'])
     agent_data = pd.DataFrame(columns=['Round'])
 
     for round in range(rounds):
         print("round", round)
-        
-        # Keep track of how edges are made
-
-        Track_edges = [[0,0], [0,0]]
-
-        model = gm.GamesModel(N, rewiring_p, alpha, beta, network, netRat, partScaleFree, alwaysOwn, UV)
+        model = gm.GamesModel(N, rewiring_p, alpha, beta, network, netRat, partScaleFree, alwaysOwn, UV, risk_distribution, utility_function)
         # Step through the simulation.
         for _ in range(steps):
             model.step()
         agent_data = pd.concat([agent_data, model.datacollector.get_agent_vars_dataframe()])
         agent_data['Round'] = agent_data['Round'].fillna(round)
-        network_data = pd.concat([network_data, model.datacollector.get_model_vars_dataframe()])
-        network_data['Round'] = network_data['Round'].fillna(round)
+        model_data = pd.concat([model_data, model.datacollector.get_model_vars_dataframe()])
+        model_data['Round'] = model_data['Round'].fillna(round)
     
 
     # Split the MultiIndex into separate columns for agent data
@@ -77,14 +88,20 @@ def simulate(N, rewiring_p, alpha, beta, network, rounds, steps, netRat = 0.1, p
     # Drop the original 'index' column for agent data
     agent_data.drop(columns=['index'], inplace=True)
 
+    #agent_data['UV'] = agent_data['UV'].apply(ast.literal_eval)
 
     #print(tabulate(agent_data, headers = 'keys', tablefmt = 'psql'))
     
     # For network data, reset the index and rename the index column to "step"
-    network_data.reset_index(inplace=True)
-    network_data.rename(columns={"index": "Step"}, inplace=True)
-    #print(tabulate(network_data, headers = 'keys', tablefmt = 'psql'))
+    model_data.reset_index(inplace=True)
+    model_data.rename(columns={"index": "Step"}, inplace=True)
+    #model_data['Unique Games'] = model_data['Unique Games'].apply(lambda x: eval(x))
+    #print(model_data["Unique Games"][0])
+    #print(tabulate(model_data, headers = 'keys', tablefmt = 'psql'))
 
-    return network_data, agent_data
+
+    
+
+    return model_data, agent_data
 
 

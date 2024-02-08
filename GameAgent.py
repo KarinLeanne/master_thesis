@@ -21,45 +21,63 @@ P1 = DOWN = RIGHT = SAFE = 1
 class GameAgent(Agent):
     'The agent that will play economic games.'
 
-    def __init__(self, id, model, rewiring_p, alpha, beta, UV = (True, None, None)):
+    def __init__(self, id, model, rewiring_p, alpha, beta, UV = (True, None, None, False), risk_aversion_distribution =  "uniform", rationality = (2, 0.5)):
         super().__init__(id, model)
+        self.id = id
         self.neighbors = list(model.graph.neighbors(id))
-        self.rationality = model.netRat * model.ratFunct(len(self.neighbors)) # rationality is the rationality of the agent
-        self.eta = np.random.rand()*2      # eta is the risk aversion parameter
-        self.eta_base = self.eta        # eta_base is the default risk aversion parameter
+        self.rationality = sp.stats.halfnorm.rvs()
+        
+        
         self.alpha = alpha              # alpha is the homophilic parameter
         self.beta = beta                # beta controls homophily together with alpha
         self.rewiring_p = rewiring_p
-        self.totPayoff = 0              # totPayoff is the (starting) total payoff 
+        self.wealth = 0              # wealth is the (starting) total payoff 
 
         self.model = model
         
 
         self.neighChoice = list(model.graph.neighbors(id))
-        self.edges = list(model.graph.edges)
-
-        self.full_graph = model.graph
-        self.nNeigbors = len(self.neighChoice)
+        self.nNeighbors = len(self.neighChoice)
+        #self.edges = list(model.graph.edges)
+        #self.full_graph = model.graph
         self.posiVals = [15, 6]
 
-        self.added_edges = [0,0]
-        self.removed_edges = [0, 0]
+        #self.added_edges = [0,0]
+        #self.removed_edges = [0, 0]
+        self.games_played = 0
+
+        # Each agent has a risk aversion parameter
+        if risk_aversion_distribution == "uniform":
+            self.eta = np.random.rand()*2      
+        elif risk_aversion_distribution == "log_normal":
+            self.eta = np.random.lognormal()*2
+        elif risk_aversion_distribution == "gamma":
+            self.eta = np.random.gamma()*2
+        elif risk_aversion_distribution == "exponential":
+            self.eta = np.random.exponential()*2
+       
+        
+        # eta_base is the default risk aversion parameter
+        self.eta_base = self.eta        
 
         # Each agent has a game
-        if UV[0]:
-            uvpay = np.random.RandomState().rand(2)*3 - 1
-            #print(uvpay)
+        if UV[0] and not UV[3]:
+            uvpay = np.random.RandomState().rand(2) * 2
             self.game = Game.Game((uvpay[0], uvpay[1]))
+        elif UV[0] and UV[3]:
+            while True:
+                uvpay = np.random.RandomState().rand(2) * 2
+                if uvpay[0] >= 1 or uvpay[1] >= 1:
+                    self.game = Game.Game((uvpay[0], uvpay[1]))
+                    break
         if not UV[0]:
             self.game = Game.Game((UV[1],UV[2]))
         
+    """
+    
+    def get_rewiring_prob(self, neighbors, alpha, beta, connect = False):
 
-
-    def get_rewiring_prob(self, neighbors, alpha, beta):
-        payoff_diff = []
-        for neighbor in neighbors:
-            second_neigh_pay = self.model.schedule.agents[neighbor]
-            payoff_diff.append(np.abs(self.totPayoff - second_neigh_pay.totPayoff))
+        payoff_diff = [np.abs(self.wealth - self.model.agents[neighbor].wealth) for neighbor in neighbors]
         pay_diff = np.array(payoff_diff)
         
         # limit pay_diff to 600 such that exp(600) does not overflow
@@ -68,9 +86,42 @@ class GameAgent(Agent):
 
         # Use softmax to get probabilities
         softmax = lambda x :  np.exp(x)/sum(np.exp(x))
-        P_con = softmax(alpha*(pay_diff-beta))
+        if connect:
+            P_con = softmax(alpha * (pay_diff - beta))
+        else:
+            P_con = softmax(-alpha * (pay_diff - beta))
 
         return P_con
+        """
+    
+    
+    
+    def get_rewiring_prob(self, neighbors, alpha, beta, connect=False):
+
+        
+        payoff_diff = [np.abs(self.wealth - self.model.agents[neighbor].wealth) for neighbor in neighbors]
+        pay_diff = np.array(payoff_diff)
+
+        # Limit pay_diff to 600 to prevent overflow
+        limit = 600
+        pay_diff[(alpha * (pay_diff - beta)) > limit] = limit
+
+        # Use the social attachement equation to get probabilities
+        epsilon = 1e-12
+        if connect:
+            P_con = 1 / (1 + np.power((1/beta) * pay_diff, alpha))
+        else:
+            P_con = 1 / (1 + np.power((1/beta) * np.maximum(pay_diff,epsilon), -alpha))
+
+        # Check if the sum of probabilities is zero
+        if np.sum(P_con) == 0:
+            # Assign equal probabilities if the sum is zero
+            P_con = np.ones_like(P_con) / len(P_con)
+
+        # Normalize probabilities to ensure they sum to 1
+        P_con /= np.sum(P_con)
+        return P_con
+    
 
     def get_first_order_neighbours(self):
         subgraph0 = nx.ego_graph(self.model.graph, self.unique_id ,radius=0)
@@ -93,13 +144,15 @@ class GameAgent(Agent):
         addedEdge = False
         first_order_neighbours =  self.get_first_order_neighbours()
 
+
         if np.random.uniform() < rewiring_p:
+            self.model.e_n += 1
 
             # Remove an edge
             if len(first_order_neighbours) > 1:        
-                P_con = self.get_rewiring_prob(first_order_neighbours, alpha, beta)
-
+                P_con = self.get_rewiring_prob(first_order_neighbours, alpha, beta, connect=False)
                 # Make choice from first-order neighbours based on probability
+
                 remove_neighbor = np.random.choice(first_order_neighbours, p=P_con)
                 self.model.graph.remove_edge(self.unique_id, remove_neighbor)
                 removedEdge = True
@@ -128,6 +181,7 @@ class GameAgent(Agent):
                 first_node = np.random.choice(self.model.graph.nodes())
                 all_nodes = list(self.model.graph.nodes())
                 neighbours = list(self.model.graph.neighbors(first_node)) + [first_node]
+
                 # Remove the first node and all its neighbours from the candidates
                 possible_nodes = [x for x in all_nodes if x not in neighbours] 
                 second_node = np.random.choice(list(possible_nodes))
@@ -144,26 +198,33 @@ class GameAgent(Agent):
             - g0_P0_Prob_S0: The probability of player 0 choosing strategy 0 in its own game (G0)
             - g0_P1_Prob_S0: The probability of player 1 choosing strategy 0 in the others game (G0)
             - g1_P0_Prob_S0: The probability of player 0 choosing strategy 0 in the others game (G1)
-            - g1_P1_Prob_S0: The probability of player 0 choosing strategy 0 in its own game (G1)
+            - g1_P1_Prob_S0: The probability of player 1 choosing strategy 0 in its own game (G1)
 
         '''
     
-        p0_g0_Prob_S0 , p1_g0_Prob_S0  = self.game.getQreChance(0, self.rationality, other_agent.rationality)
-        p0_g1_Prob_S0 , p1_g1_Prob_S0  = other_agent.game.getQreChance(0, self.rationality, other_agent.rationality)
+        p0_g0_Prob_S0 , p1_g0_Prob_S0 = self.game.getQreChance(self.rationality, other_agent.rationality, self.eta, other_agent.eta, self.model.utility_function)
+        p1_g1_Prob_S0, p0_g1_Prob_S0  = other_agent.game.getQreChance(other_agent.rationality, self.rationality, other_agent.eta, self.eta, self.model.utility_function)
         return(p0_g0_Prob_S0 , p1_g0_Prob_S0,  p0_g1_Prob_S0 , p1_g1_Prob_S0)
     
+    """
+    
+    def softmax(self, values, temperature=1.0):
+        exp_values = np.exp(values / temperature)
+        probabilities = exp_values / np.sum(exp_values)
+        return probabilities
+    
+    
+    def getGameChooserProb(chooser, chooser_game_mean, not_chooser_game_mean):
+        '''
+        probability of choosing own game
+        '''
+        if chooser.model.alwaysSafe == True:
+            return 1 if chooser_game_mean > not_chooser_game_mean else 0
 
-    def getGameChooserProb(chooser, chooser_mean, not_chooser_mean):
-        '''This takes the game means and combines it with rationality to get the
-           probability that the agent who gets to choose chooses his own game'''
-                
-        if  chooser.model.alwaysSafe == True:
-            return 1 if chooser_mean > not_chooser_mean else 0
-        
-        rational_utility_chooser = exp(chooser.rationality * chooser_mean)
-        rational_utility_notchooser  = exp(chooser.rationality * not_chooser_mean)
-
-        return rational_utility_chooser / (rational_utility_notchooser  + rational_utility_chooser)
+        else:
+            values = np.array([chooser_game_mean, not_chooser_game_mean])
+            return chooser.softmax(values)[0]
+    """        
 
     
     def chooseGame(chooser, notChooser, chooser_gChooser_Prob_S0 , notchooser_gchooser_Prob_S0,  chooser_gNotChooser_Prob_S0 , notchooser_gNotChooser_Prob_S0):
@@ -173,11 +234,15 @@ class GameAgent(Agent):
 
 
         # Calculating the mean utility of the games for the chooser
-        chooser_gChooser_UtilityMean = chooser.game.getUtilityMean(0, chooser_gChooser_Prob_S0, notchooser_gchooser_Prob_S0, chooser.eta)
-        chooser_gNotchooser_UtilityMean =  notChooser.game.getUtilityMean(1, chooser_gNotChooser_Prob_S0, notchooser_gNotChooser_Prob_S0, chooser.eta)
+        chooser_gChooser_UtilityMean = chooser.game.getUtilityMean(0, chooser_gChooser_Prob_S0, notchooser_gchooser_Prob_S0, chooser.eta, chooser.model.utility_function)
+        chooser_gNotchooser_UtilityMean =  notChooser.game.getUtilityMean(1, chooser_gNotChooser_Prob_S0, notchooser_gNotChooser_Prob_S0, chooser.eta, chooser.model.utility_function)
 
-        # Making a choice between the games with rationality in mind.
-        if random() < chooser.getGameChooserProb(chooser_gChooser_UtilityMean, chooser_gNotchooser_UtilityMean):
+
+        # Probability of choosing a game is proportional to the ratio of the means
+        p_gChooser = chooser_gChooser_UtilityMean / (chooser_gChooser_UtilityMean + chooser_gNotchooser_UtilityMean)
+
+        # Making a choice between the games
+        if random() < p_gChooser:
             return (chooser.game, chooser_gChooser_Prob_S0, notchooser_gchooser_Prob_S0)
         else:
             return (notChooser.game, chooser_gNotChooser_Prob_S0, notchooser_gNotChooser_Prob_S0)
@@ -189,7 +254,7 @@ class GameAgent(Agent):
 
         # If the node does not have neighbours, it can be skipped.
         # Should be connected?
-        if self.nNeigbors == 0:
+        if self.nNeighbors == 0:
             return
 
         # A neighbor is chosen to play a game with.
@@ -216,23 +281,69 @@ class GameAgent(Agent):
         (payoff0, payoff1) = game.playGame(P0_strategy, P1_strategy)
 
         # Both players get their respective payoffs.
-        self.totPayoff += payoff0
-        other_agent.totPayoff += payoff1
+        self.wealth += payoff0
+        other_agent.wealth += payoff1
+
+        # Add that they played one game
+        self.games_played += 1
+        other_agent.games_played += 1
 
         #player adjust their game depending on earnings 
         #//FIXME: replicator dynamics for game adoption and risk preference with probability proportional to payoff!
-        if self.totPayoff < other_agent.totPayoff and self.game.UV <= other_agent.game.UV:
+
+        #What does this mean??
+        if self.wealth < other_agent.wealth and self.game.UV == other_agent.game.UV:
             self.eta = (other_agent.eta+self.eta)/2
 
+
         # Change game and eta if other game seems more useful
-        ownGameMean = self.game.getUtilityMean(0, p1_Prob_s0, p0_Prob_s0, self.eta)
-        if (ownGameMean < payoff0) and (self.totPayoff < other_agent.totPayoff):
+        # Should be both ways?? As then its more useful to play more games otherwise less so?
+        ownGameMean = self.game.getUtilityMean(0, p1_Prob_s0, p0_Prob_s0, self.eta, self.model.utility_function)
+
+
+        mutated = False
+        adapted = False
+
+        # Throw utility function on pay off
+        if self.model.utility_function == "isoelastic":
+            ownPayoff = self.game.isoelastic_utility(self.eta, payoff0)
+        else:
+            ownPayoff = self.game.linex_utility(self.eta, payoff0)
+
+
+        if (ownGameMean < ownPayoff) and (self.wealth < other_agent.wealth):
+            self.model.e_g += 1
             self.game = other_agent.game
             self.eta = other_agent.eta
+            adapted = True
+
 
         #random mutation of risk averion eta
-        if rand.random() < 0.01:
+        if rand.random() < 1/(self.model.num_agents)**2:
             self.eta = rand.random()*2
+
+         
+        #random mutation of game
+        # Use 1/N^2    
+        if rand.random() < 1/(self.model.num_agents)**2:
+            mutated = True
+            if self.model.NH:
+                while True:
+                    uvpay = np.random.RandomState().rand(2) * 2
+                    if uvpay[0] > 1 and uvpay[1] > 1:
+                        self.game = Game.Game((uvpay[0], uvpay[1]))
+                        break
+            else:
+                uvpay = np.random.RandomState().rand(2) * 2
+                self.game = Game.Game((uvpay[0], uvpay[1]))
+
+        if (mutated or adapted):
+            self.model.e_g += 1
 
         
         self.rewire(self.alpha, self.beta, self.rewiring_p)
+        
+        # Update information about neighbours 
+        self.neighChoice = list(self.model.graph.neighbors(self.id))
+        self.nNeighbors = len(self.neighChoice)
+        

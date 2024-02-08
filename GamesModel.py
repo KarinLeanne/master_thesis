@@ -9,11 +9,15 @@
 from mesa import Model
 from mesa.time import RandomActivation
 from mesa.datacollection import DataCollector
+import inequalipy as ineq  
 import networkx as nx
 import numpy as np
 
-import GameAgent as ga
 
+import GameAgent as ga
+import utils
+
+params = utils.get_config()
 
 class GamesModel(Model):
     '''
@@ -37,12 +41,32 @@ class GamesModel(Model):
 
     '''
 
-    def __init__(self, N, rewiring_p, alpha, beta, network, netRat = 0.1, partScaleFree = 0, alwaysOwn = False, UV = (True, None, None)):
+    def __init__(self,
+                 N = params.n_agents, 
+                 rewiring_p = params.rewiring_p, 
+                 alpha = params.alpha, 
+                 beta = params.beta, 
+                 network = params.default_network, 
+                 netRat = 0.1, 
+                 partScaleFree = 0, 
+                 alwaysOwn = False, 
+                 UV = (True, None, None, False), 
+                 risk_distribution = "uniform", 
+                 utility_function = "isoelastic"):
+        
         self.num_agents = N
         self.schedule = RandomActivation(self)
         self.netRat = netRat
         self.ratFunct = lambda f : f**2
         self.alwaysSafe = alwaysOwn
+        self.utility_function = utility_function
+        self.NH = UV[3]
+        self.running = True
+
+        # The amount of times the games are updated (i.e the UV space) 
+        self.e_g = 0
+        # The amount of times the network is updated
+        self.e_n = 0
         
 
         # Generate the network.
@@ -62,15 +86,18 @@ class GamesModel(Model):
         self.initial_mean_degree = self.get_mean_degree()
 
         # Create agents.
+        self.agents = np.array([])
         for node in self.graph:
-            agent = ga.GameAgent(node, self, rewiring_p, alpha, beta)
+            agent = ga.GameAgent(node, self, rewiring_p, alpha, beta, risk_distribution)
+            self.agents = np.append(self.agents, agent)
             self.schedule.add(agent)
 
         # Collect model timestep data.
         self.datacollector = DataCollector(
             #model_reporters={"Mean Degree" : self.get_mean_degree, "Var of Degree" : self.get_variance_degree, "Avg Clustering" : self.get_clustering_coef, "Game Distribution" : "game_list"},
-            model_reporters={"M: Mean Degree" : self.get_mean_degree, "M: Var of Degree" : self.get_variance_degree, "M: Avg Clustering" : self.get_clustering_coef},
-            agent_reporters={"playerPayoff": "totPayoff","Player risk aversion": "eta", "UV": "game.UV"}
+            model_reporters={"M: Mean Degree" : self.get_mean_degree, "M: Var of Degree" : self.get_variance_degree, "M: Avg Clustering" : self.get_clustering_coef, "Gini Coefficient": self.get_gini_coef,
+                             "Unique Games": self.get_unique_games, "Degree Distr": self.get_degree_distribution, "e_n": "e_n", "e_g": "e_g"},
+            agent_reporters={"Wealth": "wealth","Player risk aversion": "eta", "UV": "game.UV", "Games played": "games_played", "Neighbours": "nNeighbors"}
         )
 
     
@@ -81,6 +108,10 @@ class GamesModel(Model):
         '''
         total_degree = sum([x[1] for x in self.graph.degree()])
         return (total_degree / self.graph.number_of_nodes())
+    
+    def get_degree_distribution(self):
+        return [x[1] for x in self.graph.degree()]
+    
     
     def get_variance_degree(self):
         '''
@@ -97,6 +128,21 @@ class GamesModel(Model):
         Output: Clustering coefficent network 
         '''
         return nx.average_clustering(self.graph)
+    
+    
+    def get_gini_coef(self):
+        wealth = np.array([agent.wealth for agent in self.agents])
+        return ineq.gini(wealth)
+
+
+    def get_unique_games(self):
+        return list(set([agent.game.UV for agent in self.agents]))
+    
+    def get_ratio_updating_speed(self):
+        if self.e_n == 0 or  self.e_g == 0:
+            return 0
+        return self.e_g / self.e_n
+
 
     def step(self):
         '''
@@ -104,4 +150,5 @@ class GamesModel(Model):
         '''
         self.schedule.step()
         self.datacollector.collect(self)
-      
+
+        
