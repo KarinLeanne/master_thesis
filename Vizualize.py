@@ -560,7 +560,11 @@ def vizualize_Degree_Distr(df, measure, bins=10):
         
         combined_degree_distribution = []
         for degree_list in subset_data['Degree Distr']:
-            combined_degree_distribution.extend(json.loads(degree_list))
+            if type(degree_list):
+                combined_degree_distribution.extend(degree_list)
+            else:
+                combined_degree_distribution.extend(json.loads(degree_list))
+
 
         axs[idx].hist(combined_degree_distribution, edgecolor='black', bins=bins)
         axs[idx].set_xlabel(measure)

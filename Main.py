@@ -34,10 +34,6 @@ def main():
     # Experiments on Updating Mechanisms
     expU.speedOfUpdatingRewiring_vs_UV()
 
-
-    # Run global sensitivity analysis
-    Sobol.global_sensitivity_analysis()
-
     # Experiments on Network
     expN.run_default_data()
     expN.time_series_mean_network_measures()
@@ -45,6 +41,12 @@ def main():
     expN.effect_of_rewiring_p_on_variance_and_clustering()
     expN.effect_of_triangle_prob_on_variance_and_clustering()
     
+
+
+    # Run global sensitivity analysis
+    Sobol.global_sensitivity_analysis()
+
+
 
 
 
