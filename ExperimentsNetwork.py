@@ -187,23 +187,30 @@ def run_ofat_network():
     if os.path.isfile(path_gini):
         df_ofat_gini = pd.read_excel(path_gini)
     else:
-        df_ofat_gini = OFAT.ofat('Gini Coefficient', "Networks", level='model')
+        gini_reporters = {"Gini Coefficient": lambda m: m.get_gini_coef()}
+        df_ofat_gini = OFAT.ofat('Networks', 'Gini Coefficient', model_reporters = gini_reporters, level='model')
         df_ofat_gini.to_excel(path_gini, index=False)
 
     # For Wealth (agent-level)
     if os.path.isfile(path_wealth):
         df_ofat_wealth = pd.read_excel(path_wealth)
     else:
-        df_ofat_wealth = OFAT.ofat('Wealth', "Networks", level='agent')
-        df_ofat_wealth.to_excel(path_gini, index=False)
+        wealth_reporters = {"Wealth": "wealth"}
+        df_ofat_wealth = OFAT.ofat('Networks', 'Wealth', agent_reporters = wealth_reporters, level='agent')
+        df_ofat_wealth.to_excel(path_wealth, index=False)
 
     # For Player risk aversion (agent-level)
     if os.path.isfile(path_risk_aversion):
         df_ofat_risk_aversion = pd.read_excel(path_risk_aversion)
     else:
-        df_ofat_risk_aversion = OFAT.ofat('Player risk aversion', "Networks", level='agent')
+        risk_reporters = {"Player risk aversion": "eta"}
+        df_ofat_risk_aversion = OFAT.ofat('Networks', 'Player risk aversion', agent_reporters = risk_reporters, level='agent')
         df_ofat_risk_aversion.to_excel(path_risk_aversion, index=False)
 
+    # Vizualize the ofat
+    OFAT.plot_vs_independent(df_ofat_gini, "Gini Coefficient")
+    OFAT.plot_vs_independent(df_ofat_wealth, "Wealth")
+    OFAT.plot_vs_independent(df_ofat_risk_aversion, "Player risk aversion")
 
 
 

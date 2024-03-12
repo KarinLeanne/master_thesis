@@ -8,14 +8,53 @@ from warnings import filterwarnings
 from GamesModel import GamesModel
 from tabulate import tabulate
 import utils
+from scipy.stats import sem
 
-def plot_average_with_ci(data, x_var, y_var, chapter, level='model'):
-    # ... (unchanged code for plotting)
+def calculate_ci(data):
+    mean = data.mean()
+    ci = 1.96 * sem(data)
+    return mean, ci
 
-    # Save Figure
-    path = utils.make_path("Figures", chapter, f"{chapter}_{level}_{x_var}_{y_var}")
-    plt.savefig(path)
-    plt.close()
+def plot_vs_independent(data, dependent_var):
+    independent_vars = data['IndependentVariable'].unique()
+
+    # Create subplots
+    fig, axes = plt.subplots(1, len(independent_vars), figsize=(15, 5), sharey=True)
+
+    for i, independent_var in enumerate(independent_vars):
+        # Filter data for the current independent variable
+        subset = data[data['IndependentVariable'] == independent_var]
+
+        # Group data by the independent variable and calculate mean and CI
+        grouped_data = subset.groupby('IndenpendentValue')[dependent_var].agg(calculate_ci).reset_index()
+
+        # Unpack the calculated values
+        mean, ci = zip(*grouped_data[dependent_var])
+
+        # Plot the mean line
+        sns.lineplot(x=grouped_data['IndenpendentValue'], y=mean, ax=axes[i], label='Mean')
+
+        # Fill the confidence interval
+        axes[i].fill_between(grouped_data['IndenpendentValue'], np.array(mean) - np.array(ci),
+                             np.array(mean) + np.array(ci), alpha=0.2, label='CI')
+
+        # Set subplot title and labels
+        axes[i].set_title(f'{independent_var.capitalize()} vs {dependent_var}')
+        axes[i].set_xlabel(f'{independent_var.capitalize()}')
+
+        # Display legend in the last subplot
+        if i == len(independent_vars) - 1:
+            axes[i].legend()
+
+    # Set common ylabel
+    axes[0].set_ylabel(f'{dependent_var.capitalize()}')
+
+    # Adjust layout for better spacing
+    plt.tight_layout()
+
+    # Show the plot
+    plt.show()
+
 
 def save_data_to_excel(data, dependent_variable, chapter, level='model'):
     # Save data to Excel file
@@ -74,40 +113,9 @@ def ofat(chapter, dependent_variable, model_reporters = {}, agent_reporters= {},
             var = var.strip("[]")
             current_data = current_data.drop(var, axis=1)
 
-            #print("_______________________________________________")
-            # Display the DataFrame after dropping the column
-            #print(tabulate(current_data, headers='keys', tablefmt='psql'))
-            #print("_______________________________________________")
-
-            # Append the current data to the overall data DataFrame
+            # Add to data
             data = pd.concat([data, current_data])
 
-        # ...
-            
-        print(tabulate(data.head(), headers='keys', tablefmt='psql'))
-
-        # Filter the DataFrame to keep only rows where 'IndependentVariable' matches 'IndependentValue'
-        #filtered_data = data[data['IndependentVariable'] == data['IndependentValue']]
-
-        # Melt the filtered DataFrame
-        #melted_data = pd.melt(filtered_data, id_vars=['IndependentVariable', 'IndependentValue'], var_name='Iteration', value_name='Value')
-
-        #print(tabulate(melted_data.head(), headers='keys', tablefmt='psql'))
-
-        # Save the combined data for the dependent variable
-        save_data_to_excel(data, dependent_variable, chapter, level)
-
         # Plot the results
-        plot_average_with_ci(data, 'Parameter', dependent_variable, chapter, level=level)
+        return data
 
-# Example usage for Gini Coefficient (model-level)
-gini_reporters = {"Gini Coefficient": lambda m: m.get_gini_coef()}
-ofat('Networks', 'Gini Coefficient', model_reporters = gini_reporters, level='model')
-
-# Example usage for Wealth (agent-level)
-wealth_reporters = {"Wealth": "wealth"}
-ofat('Networks', 'Wealth', agent_reporters = wealth_reporters, level='agent')
-
-# Example usage for Player risk aversion (agent-level)
-risk_reporters = {"Player risk aversion": "eta"}
-ofat('Networks', 'Player risk aversion', agent_reporters = risk_reporters, level='agent')
