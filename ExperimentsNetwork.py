@@ -11,7 +11,7 @@ from tabulate import tabulate
 from IPython.display import display
 import scipy.stats as st
 import os
-
+import OFAT
 
 params = utils.get_config()
 
@@ -177,6 +177,33 @@ def run_default_data():
     viz.vizualize_histogram_over_time(df_agent, "Games played", bins=40)
     viz.vizualize_histogram_over_time(df_agent, "Neighbours", bins=40)
     viz.vizualize_Degree_Distr(df_model, "Degree Distr", bins=40)
+
+def run_ofat_network():
+    path_gini = utils.make_path("Data", "Networks", "ofat_gini")
+    path_wealth = utils.make_path("Data", "Networks", "ofat_wealth")
+    path_risk_aversion = utils.make_path("Data", "Networks", "ofat_risk_aversion")
+
+    # For Gini Coefficient (model-level)
+    if os.path.isfile(path_gini):
+        df_ofat_gini = pd.read_excel(path_gini)
+    else:
+        df_ofat_gini = OFAT.ofat('Gini Coefficient', "Networks", level='model')
+        df_ofat_gini.to_excel(path_gini, index=False)
+
+    # For Wealth (agent-level)
+    if os.path.isfile(path_wealth):
+        df_ofat_wealth = pd.read_excel(path_wealth)
+    else:
+        df_ofat_wealth = OFAT.ofat('Wealth', "Networks", level='agent')
+        df_ofat_wealth.to_excel(path_gini, index=False)
+
+    # For Player risk aversion (agent-level)
+    if os.path.isfile(path_risk_aversion):
+        df_ofat_risk_aversion = pd.read_excel(path_risk_aversion)
+    else:
+        df_ofat_risk_aversion = OFAT.ofat('Player risk aversion', "Networks", level='agent')
+        df_ofat_risk_aversion.to_excel(path_risk_aversion, index=False)
+
 
 
 

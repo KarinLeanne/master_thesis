@@ -9,7 +9,7 @@
 from mesa import Model
 from mesa.time import RandomActivation
 from mesa.datacollection import DataCollector
-import inequalipy as ineq  
+import inequalipy   
 import networkx as nx
 import numpy as np
 
@@ -132,7 +132,7 @@ class GamesModel(Model):
     
     def get_gini_coef(self):
         wealth = np.array([agent.wealth for agent in self.agents])
-        return ineq.gini(wealth)
+        return inequalipy.gini(wealth)
 
 
     def get_unique_games(self):

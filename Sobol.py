@@ -77,21 +77,26 @@ def plot_global(Si, problem, title=''):
     plot_index(Si, problem['names'], 'T', f'Total order sensitivity - {title}')
     
 
+def sensitivity_analysis_for_variable(problem, data, output_variable, data_column):
+    Si = sobol.analyze(problem, data[data_column].values, calc_second_order=True)
+
+    # Print sensitivity indices
+    print(f"{output_variable} - First-order indices:", Si['S1'])
+    print(f"{output_variable} - Total-order indices:", Si['ST'])
+    plot_global(Si, problem, title=output_variable)
+
+
 def global_sensitivity_analysis():
     path = utils.make_path("Data", "Sobol", "Sobol")
 
     # Define parameter ranges
-    problem = {
-        'num_vars': 3,
-        'names': ['rewiring_p', 'alpha', 'beta'],
-        'bounds': [[0.1, 1], [0.1, 1], [0, 1]]
-        }
+    problem = params.problem
 
     if os.path.isfile(path):
         data = pd.read_excel(path)
     else:
         # Generate Sobol samples
-        n_samples = 4
+        n_samples = params.distinct_samples
         param_values = saltelli.sample(problem, n_samples, calc_second_order=False)
 
         # Initialize DataFrame with NaN values
@@ -100,8 +105,6 @@ def global_sensitivity_analysis():
 
         # Add this line to properly initialize 'Gini Coefficient' column
         data['Gini_Coefficient'] = np.nan
-
-
 
         batch = BatchRunner(GamesModel, 
                     max_steps=params.n_steps,
@@ -132,27 +135,12 @@ def global_sensitivity_analysis():
         # Save data
         data.to_excel(path, index=False)
             
-    
-    # Perform Sobol analysis for Wealth
-    Si_wealth = sobol.analyze(problem, data['Wealth'].values, calc_second_order=True)
 
-    # Print sensitivity indices for Wealth
-    print("Wealth - First-order indices:", Si_wealth['S1'])
-    print("Wealth - Total-order indices:", Si_wealth['ST'])
-    plot_global(Si_wealth, problem, title='Wealth')
+    # Perform Sobol analysis for Wealth
+    sensitivity_analysis_for_variable(problem, data, "Wealth", "Wealth")
 
     # Perform Sobol analysis for eta
-    Si_eta = sobol.analyze(problem, data['eta'].values, calc_second_order=True)
-
-    # Print sensitivity indices for eta
-    print("eta - First-order indices:", Si_eta['S1'])
-    print("eta - Total-order indices:", Si_eta['ST'])
-    plot_global(Si_eta, problem, title='Risk Aversion')
+    sensitivity_analysis_for_variable(problem, data, "Risk Aversion", "eta")
 
     # Perform Sobol analysis for Gini Coefficient
-    Si_gini = sobol.analyze(problem, data['Gini_Coefficient'].values, calc_second_order=True)
-
-    # Print sensitivity indices for Gini Coefficient
-    print("Gini Coefficient - First-order indices:", Si_gini['S1'])
-    print("Gini Coefficient - Total-order indices:", Si_gini['ST'])
-    plot_global(Si_gini, problem, title='Gini Coefficient')
+    sensitivity_analysis_for_variable(problem, data,"Gini Coefficient", "Gini_Coefficient")
