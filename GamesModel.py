@@ -12,6 +12,8 @@ from mesa.datacollection import DataCollector
 import inequalipy   
 import networkx as nx
 import numpy as np
+import matplotlib.pyplot as plt
+from collections import Counter
 
 
 import GameAgent as ga
@@ -46,8 +48,8 @@ class GamesModel(Model):
                  rewiring_p = params.rewiring_p, 
                  alpha = params.alpha, 
                  beta = params.beta, 
+                 rat = params.rat,
                  network = params.default_network, 
-                 netRat = 0.1, 
                  partScaleFree = 0, 
                  alwaysOwn = False, 
                  UV = (True, None, None, False), 
@@ -56,21 +58,21 @@ class GamesModel(Model):
         
         self.num_agents = N
         self.schedule = RandomActivation(self)
-        self.netRat = netRat
+        self.netRat = rat
         self.ratFunct = lambda f : f**2
         self.alwaysSafe = alwaysOwn
         self.utility_function = utility_function
         self.NH = UV[3]
         self.running = True
+         # List to store game instances
+        self.games = [] 
 
         # The amount of times the games are updated (i.e the UV space) 
         self.e_g = 0
         # The amount of times the network is updated
         self.e_n = 0
         
-
         # Generate the network.
-
         if network[0] == 'RR':
             if network[1]%2:
                 network[1] -= 1 
@@ -85,10 +87,20 @@ class GamesModel(Model):
         #save mean degree of network
         self.initial_mean_degree = self.get_mean_degree()
 
+
+        # Create Games using stratified sampling
+        if self.NH:
+            space = (0, 2, 0, 2)
+            blocked_area = (0, 1, 0, 1)
+            games = self.stratified_sampling(N, space, blocked_area)
+        else:
+            space = (0, 2, 0, 2)  # Assuming UV space ranges from 0 to 2
+            games = self.stratified_sampling(N, space)
+
         # Create agents.
         self.agents = np.array([])
-        for node in self.graph:
-            agent = ga.GameAgent(node, self, rewiring_p, alpha, beta, risk_distribution)
+        for idx, node in enumerate(self.graph):
+            agent = ga.GameAgent(node, self, rewiring_p, alpha, beta,UV=UV, uvpay = games[idx], risk_aversion_distribution = risk_distribution)
             self.agents = np.append(self.agents, agent)
             self.schedule.add(agent)
 
@@ -96,10 +108,38 @@ class GamesModel(Model):
         self.datacollector = DataCollector(
             #model_reporters={"Mean Degree" : self.get_mean_degree, "Var of Degree" : self.get_variance_degree, "Avg Clustering" : self.get_clustering_coef, "Game Distribution" : "game_list"},
             model_reporters={"M: Mean Degree" : self.get_mean_degree, "M: Var of Degree" : self.get_variance_degree, "M: Avg Clustering" : self.get_clustering_coef, "Gini Coefficient": self.get_gini_coef,
-                             "Unique Games": self.get_unique_games, "Degree Distr": self.get_degree_distribution, "e_n": "e_n", "e_g": "e_g"},
-            agent_reporters={"Wealth": "wealth","Player risk aversion": "eta", "UV": "game.UV", "Games played": "games_played", "Neighbours": "nNeighbors"}
+                             "Unique Games": self.get_unique_games, "Degree Distr": self.get_degree_distribution, "e_n": "e_n", "e_g": "e_g", "Game data": self.get_game_data},
+            agent_reporters={"Wealth": "wealth","Player risk aversion": "eta", "UV": "game.UV", "Games played": "games_played"}
         )
 
+
+    def stratified_sampling(self, n_agents, space_range, blocked_area=None):
+        # Extract space range boundaries
+        x_min, x_max, y_min, y_max = space_range
+
+        # Increase the number of samples along each dimension
+        num_samples = int(np.sqrt(n_agents)) * 3
+
+        # Generate stratified samples for x and y coordinates
+        x_samples = np.linspace(x_min, x_max, num_samples)
+        y_samples = np.linspace(y_min, y_max, num_samples)
+
+        # Generate all possible combinations of x and y coordinates
+        xy_combinations = [(x, y) for x in x_samples for y in y_samples]
+
+        # Remove samples in the blocked area if specified
+        if blocked_area:
+            x_blocked_min, x_blocked_max, y_blocked_min, y_blocked_max = blocked_area
+            xy_combinations = [xy for xy in xy_combinations if not (x_blocked_min <= xy[0] < x_blocked_max and
+                                                                    y_blocked_min <= xy[1] < y_blocked_max)]
+
+        # Randomly shuffle the list of combinations
+        np.random.shuffle(xy_combinations)
+
+        # Select the first n_agents combinations as the sampled games
+        sampled_uv = xy_combinations[:n_agents]
+
+        return sampled_uv
     
     def get_mean_degree(self):
         '''
@@ -108,6 +148,7 @@ class GamesModel(Model):
         '''
         total_degree = sum([x[1] for x in self.graph.degree()])
         return (total_degree / self.graph.number_of_nodes())
+    
     
     def get_degree_distribution(self):
         return [x[1] for x in self.graph.degree()]
@@ -129,7 +170,6 @@ class GamesModel(Model):
         '''
         return nx.average_clustering(self.graph)
     
-    
     def get_gini_coef(self):
         wealth = np.array([agent.wealth for agent in self.agents])
         return inequalipy.gini(wealth)
@@ -142,7 +182,12 @@ class GamesModel(Model):
         if self.e_n == 0 or  self.e_g == 0:
             return 0
         return self.e_g / self.e_n
-
+    
+    def get_game_data(self):
+        game_data = []
+        for game in self.games:
+            game_data.append([game.name, game.play_count, game.total_payoff, game.UV])
+        return game_data
 
     def step(self):
         '''
@@ -150,5 +195,3 @@ class GamesModel(Model):
         '''
         self.schedule.step()
         self.datacollector.collect(self)
-
-        

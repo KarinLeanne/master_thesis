@@ -1,5 +1,6 @@
 from importlib import import_module
 import os
+import ast
 
 def get_config():
     '''
@@ -28,3 +29,8 @@ def make_path(type, chapter, name):
         result_path = f"{type}/{chapter}/{name}_{params.n_steps}_{params.n_agents}_{params.n_rounds}.png"
 
     return result_path
+
+def string_to_list(data):
+    if isinstance(data.values[0], str):
+        data = data.apply(ast.literal_eval).tolist()
+    return data

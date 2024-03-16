@@ -6,14 +6,19 @@
 import numpy as np
 from scipy.optimize import least_squares
 from math import exp
+from itertools import count
 
 
 class Game:
+    _ids = count(1)
     def __init__(self, UV = (3, 5)):
         
         '''If no payoff matrix is given, the prisoners dilemma is chosen.
         Can also create a game from the payoffs of two players.'''
+        self.name = f"Game_{next(self._ids)}"
         self.UV = UV
+        self.play_count = 0
+        self.total_payoff = 0
         
     def getPayoffMatrix(self):
         '''
@@ -29,7 +34,12 @@ class Game:
     def playGame(self, choiceP0, choiceP1):
         'Simulates a game with the player choices.'
         payoffs = self.getPayoffMatrix()
-        return payoffs[choiceP0][choiceP1]
+        self.play_count += 1
+        payoffs = payoffs[choiceP0][choiceP1]
+        self.total_payoff = self.total_payoff + payoffs[0]
+        self.total_payoff = self.total_payoff + payoffs[1]
+
+        return payoffs
 
 
     def getPlayerCells(self, player):

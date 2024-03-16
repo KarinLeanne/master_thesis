@@ -12,6 +12,7 @@ from math import exp
 import scipy as sp
 from mesa import Agent
 
+
 import Game
 
 P0 = UP = LEFT = RISK = 0
@@ -19,13 +20,13 @@ P1 = DOWN = RIGHT = SAFE = 1
 
 
 class GameAgent(Agent):
+
     'The agent that will play economic games.'
 
-    def __init__(self, id, model, rewiring_p, alpha, beta, UV = (True, None, None, False), risk_aversion_distribution =  "uniform", rationality = (2, 0.5)):
+    def __init__(self, id, model, rewiring_p = 0, alpha = 0, beta = 0, rat = 0, uvpay = (0,0), UV = (True, None, None, False), risk_aversion_distribution =  "uniform"):
         super().__init__(id, model)
         self.id = id
-        self.neighbors = list(model.graph.neighbors(id))
-        self.rationality = sp.stats.halfnorm.rvs()
+        self.rationality = rat
         
         
         self.alpha = alpha              # alpha is the homophilic parameter
@@ -34,10 +35,7 @@ class GameAgent(Agent):
         self.wealth = 0              # wealth is the (starting) total payoff 
 
         self.model = model
-        
 
-        self.neighChoice = list(model.graph.neighbors(id))
-        self.nNeighbors = len(self.neighChoice)
         #self.edges = list(model.graph.edges)
         #self.full_graph = model.graph
         self.posiVals = [15, 6]
@@ -52,7 +50,7 @@ class GameAgent(Agent):
         elif risk_aversion_distribution == "log_normal":
             self.eta = np.random.lognormal()*2
         elif risk_aversion_distribution == "gamma":
-            self.eta = np.random.gamma()*2
+            self.eta = np.random.gamma(shape=1)*2
         elif risk_aversion_distribution == "exponential":
             self.eta = np.random.exponential()*2
        
@@ -61,17 +59,12 @@ class GameAgent(Agent):
         self.eta_base = self.eta        
 
         # Each agent has a game
-        if UV[0] and not UV[3]:
-            uvpay = np.random.RandomState().rand(2) * 2
+        if UV[0]:
             self.game = Game.Game((uvpay[0], uvpay[1]))
-        elif UV[0] and UV[3]:
-            while True:
-                uvpay = np.random.RandomState().rand(2) * 2
-                if uvpay[0] >= 1 or uvpay[1] >= 1:
-                    self.game = Game.Game((uvpay[0], uvpay[1]))
-                    break
+            self.model.games.append(self.game)
         if not UV[0]:
             self.game = Game.Game((UV[1],UV[2]))
+            self.model.games.append(self.game)
         
     """
     
@@ -94,7 +87,7 @@ class GameAgent(Agent):
         return P_con
         """
     
-    
+
     
     def get_rewiring_prob(self, neighbors, alpha, beta, connect=False):
 
@@ -138,55 +131,55 @@ class GameAgent(Agent):
         return list(subgraph2.nodes())
     
 
-    def rewire(self, alpha, beta, rewiring_p, random_rewiring = 0.1):
-
-        removedEdge = False
-        addedEdge = False
-        first_order_neighbours =  self.get_first_order_neighbours()
-
+    def rewire(self, alpha, beta, rewiring_p):
 
         if np.random.uniform() < rewiring_p:
             self.model.e_n += 1
 
-            # Remove an edge
-            if len(first_order_neighbours) > 1:        
-                P_con = self.get_rewiring_prob(first_order_neighbours, alpha, beta, connect=False)
+            # Remove an edge if agent has neighbour
+            first_order_neighbours = self.get_first_order_neighbours()
+            eligable_neighbours = [neighbor for neighbor in first_order_neighbours if self.model.graph.degree(neighbor) > 1]
+
+            if len(eligable_neighbours) > 1:
+                P_con = self.get_rewiring_prob(eligable_neighbours, alpha, beta, connect=False)
                 # Make choice from first-order neighbours based on probability
+                removed_neighbor = np.random.choice([node for node in first_order_neighbours if self.model.graph.degree(node) > 1], p=P_con)
+                self.model.graph.remove_edge(self.unique_id, removed_neighbor)
 
-                remove_neighbor = np.random.choice(first_order_neighbours, p=P_con)
-                self.model.graph.remove_edge(self.unique_id, remove_neighbor)
-                removedEdge = True
-
+            # Else remove a random edge in the network
+            # Issue could remove last edge someone has
+            else:
+                # Get all edges
+                edges = list(self.model.graph.edges())
+                # Filter edges to exclude those where either node has a degree of 1
+                valid_edges = [(u, v) for (u, v) in edges if self.model.graph.degree(u) > 1 and self.model.graph.degree(v) > 1]
+                d_edge = self.random.choice(valid_edges)
+                self.model.graph.remove_edge(d_edge[0], d_edge[1])
 
             second_order_neighbours = self.get_second_order_neighbours()
-
-            # Add an edge
-            second_order_neighbours = self.get_second_order_neighbours()
+            # Add an edge if the agent has second order neighbours
             if len(second_order_neighbours) > 0:
                 P_con = self.get_rewiring_prob(second_order_neighbours, alpha, beta)
                 # Make choice from second-order neighbours based on probability
                 add_neighbor = np.random.choice(second_order_neighbours, p=P_con)
                 self.model.graph.add_edge(self.unique_id, add_neighbor)
-                addedEdge = True
 
-            if addedEdge and not removedEdge:
-                # Remove a random edge in the network
-                edges = list(self.model.graph.edges())
-                d_edge = self.random.choice(edges)
-                self.model.graph.remove_edge(d_edge[0], d_edge[1])
-
-
-            if not addedEdge and removedEdge:
-                # Pick a randomn node
+            # Else add a random edge in the network
+            else:
+                # Pick a random agent (node)
                 first_node = np.random.choice(self.model.graph.nodes())
                 all_nodes = list(self.model.graph.nodes())
                 neighbours = list(self.model.graph.neighbors(first_node)) + [first_node]
 
-                # Remove the first node and all its neighbours from the candidates
-                possible_nodes = [x for x in all_nodes if x not in neighbours] 
+                # Remove the agent and all its neighbours from the candidates
+                possible_nodes = [x for x in all_nodes if x not in neighbours]
+                # Make a connection with another randomn agent (node)
                 second_node = np.random.choice(list(possible_nodes))
+                self.nNeighbors = self.model.graph.degree(self.id)
                 self.model.graph.add_edge(first_node, second_node)
-        
+
+
+            
 
     def getPlayerStrategyProbs(self, other_agent):
         '''
@@ -254,11 +247,11 @@ class GameAgent(Agent):
 
         # If the node does not have neighbours, it can be skipped.
         # Should be connected?
-        if self.nNeighbors == 0:
+        if self.model.graph.degree(self.id) == 0:       
             return
 
         # A neighbor is chosen to play a game with.
-        neighId = self.random.choice(self.neighChoice)
+        neighId = self.random.choice(list(self.model.graph.neighbors(self.id)))
 
         other_agent = self.model.schedule.agents[neighId]
 
@@ -288,18 +281,12 @@ class GameAgent(Agent):
         self.games_played += 1
         other_agent.games_played += 1
 
-        #player adjust their game depending on earnings 
-        #//FIXME: replicator dynamics for game adoption and risk preference with probability proportional to payoff!
-
         #What does this mean??
         if self.wealth < other_agent.wealth and self.game.UV == other_agent.game.UV:
             self.eta = (other_agent.eta+self.eta)/2
 
-
         # Change game and eta if other game seems more useful
-        # Should be both ways?? As then its more useful to play more games otherwise less so?
         ownGameMean = self.game.getUtilityMean(0, p1_Prob_s0, p0_Prob_s0, self.eta, self.model.utility_function)
-
 
         mutated = False
         adapted = False
@@ -317,7 +304,6 @@ class GameAgent(Agent):
             self.eta = other_agent.eta
             adapted = True
 
-
         #random mutation of risk averion eta
         if rand.random() < 1/(self.model.num_agents)**2:
             self.eta = rand.random()*2
@@ -332,18 +318,16 @@ class GameAgent(Agent):
                     uvpay = np.random.RandomState().rand(2) * 2
                     if uvpay[0] > 1 and uvpay[1] > 1:
                         self.game = Game.Game((uvpay[0], uvpay[1]))
+                        self.model.games.append(self.game)
                         break
             else:
                 uvpay = np.random.RandomState().rand(2) * 2
                 self.game = Game.Game((uvpay[0], uvpay[1]))
+                self.model.games.append(self.game)
 
         if (mutated or adapted):
             self.model.e_g += 1
 
-        
         self.rewire(self.alpha, self.beta, self.rewiring_p)
-        
-        # Update information about neighbours 
-        self.neighChoice = list(self.model.graph.neighbors(self.id))
-        self.nNeighbors = len(self.neighChoice)
+
         

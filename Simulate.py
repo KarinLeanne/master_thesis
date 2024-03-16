@@ -34,6 +34,7 @@ def simulate(N = params.n_agents,
              rewiring_p = params.rewiring_p, 
              alpha = params.alpha, 
              beta = params.beta, 
+             rat = params.rat,
              network = params.default_network, 
              rounds = params.n_rounds, 
              steps = params.n_steps, 
@@ -67,7 +68,18 @@ def simulate(N = params.n_agents,
 
     for round in range(rounds):
         print("round", round)
-        model = gm.GamesModel(N, rewiring_p, alpha, beta, network, netRat, partScaleFree, alwaysOwn, UV, risk_distribution, utility_function)
+        model = gm.GamesModel(
+                 N = N, 
+                 rewiring_p = rewiring_p, 
+                 alpha = alpha, 
+                 beta = beta, 
+                 rat = rat,
+                 network = network, 
+                 partScaleFree = partScaleFree, 
+                 alwaysOwn = alwaysOwn, 
+                 UV = (True, None, None, False), 
+                 risk_distribution = risk_distribution, 
+                 utility_function = utility_function)
         # Step through the simulation.
         for _ in range(steps):
             model.step()
@@ -79,6 +91,7 @@ def simulate(N = params.n_agents,
 
     # Split the MultiIndex into separate columns for agent data
     agent_data.reset_index(inplace=True)
+    # Subtract 1 from the first element of each tuple in the "index" column
     agent_data[['Step', 'Players']] = pd.DataFrame(agent_data['index'].to_list(), index=agent_data.index)
 
     # Reorder the columns with 'steps' and 'players' immediately after the index for agnet data
@@ -87,6 +100,9 @@ def simulate(N = params.n_agents,
 
     # Drop the original 'index' column for agent data
     agent_data.drop(columns=['index'], inplace=True)
+    
+    # Subtract 1 from each value in the "Step" column
+    agent_data['Step'] = agent_data['Step'] - 1
 
     #agent_data['UV'] = agent_data['UV'].apply(ast.literal_eval)
 
