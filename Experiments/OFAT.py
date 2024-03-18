@@ -27,16 +27,16 @@ def plot_vs_independent(chapter, data, dependent_var):
             subset = data[data['IndependentVariable'] == independent_var]
 
             # Group data by the independent variable and calculate mean and CI
-            grouped_data = subset.groupby('IndenpendentValue')[dependent_var].agg(calculate_ci).reset_index()
+            grouped_data = subset.groupby('IndependentValue')[dependent_var].agg(calculate_ci).reset_index()
 
             # Unpack the calculated values
             mean, ci = zip(*grouped_data[dependent_var])
 
             # Plot the mean line
-            sns.lineplot(x=grouped_data['IndenpendentValue'], y=mean, ax=ax, label='Mean')
+            sns.lineplot(x=grouped_data['IndependentValue'], y=mean, ax=ax, label='Mean')
 
             # Fill the confidence interval
-            ax.fill_between(grouped_data['IndenpendentValue'], np.array(mean) - np.array(ci),
+            ax.fill_between(grouped_data['IndependentValue'], np.array(mean) - np.array(ci),
                             np.array(mean) + np.array(ci), alpha=0.2, label='CI')
 
             # Set subplot title and labels
@@ -53,16 +53,16 @@ def plot_vs_independent(chapter, data, dependent_var):
         subset = data[data['IndependentVariable'] == independent_var]
 
         # Group data by the independent variable and calculate mean and CI
-        grouped_data = subset.groupby('IndenpendentValue')[dependent_var].agg(calculate_ci).reset_index()
+        grouped_data = subset.groupby('IndependentValue')[dependent_var].agg(calculate_ci).reset_index()
 
         # Unpack the calculated values
         mean, ci = zip(*grouped_data[dependent_var])
 
         # Plot the mean line
-        sns.lineplot(x=grouped_data['IndenpendentValue'], y=mean, ax=axes, label='Mean')
+        sns.lineplot(x=grouped_data['IndependentValue'], y=mean, ax=axes, label='Mean')
 
         # Fill the confidence interval
-        axes.fill_between(grouped_data['IndenpendentValue'], np.array(mean) - np.array(ci),
+        axes.fill_between(grouped_data['IndependentValue'], np.array(mean) - np.array(ci),
                          np.array(mean) + np.array(ci), alpha=0.2, label='CI')
 
         # Set subplot title and labels
@@ -98,7 +98,7 @@ def ofat(model_reporters = {}, agent_reporters= {}, level='model'):
     
 
     for idx, var in enumerate(problem['names']):
-        print(f'varying {var}')
+        print(f'varying {var} for {model_reporters}{agent_reporters}')
 
         # Generate the samples
         samples = np.linspace(*problem['bounds'][idx], num=distinct_samples)
@@ -120,7 +120,7 @@ def ofat(model_reporters = {}, agent_reporters= {}, level='model'):
             current_data = batch.get_agent_vars_dataframe()
 
         current_data['IndependentVariable'] = var
-        current_data['IndenpendentValue'] = current_data[var]
+        current_data['IndependentValue'] = current_data[var]
 
 
         # Drop the column with current var name

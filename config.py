@@ -12,8 +12,8 @@ beta = 0.1                 # beta is the homophilic parameter
 
 rat = 0.1
 
-networks = [("HK", 4, 1), ("RR", 4, 1), ("WS", 4, 0.3)]
-default_network = ("WS", 4, 0.3)
+networks = [("HK", 4, 0.3), ("RR", 4, 1), ("WS", 4, 0.2)]
+default_network = ("WS", 4, 0.2)
 
 distinct_samples = 4 
 problem = {
@@ -21,3 +21,4 @@ problem = {
         'names': ['rewiring_p', 'alpha', 'beta', 'rat'],
         'bounds': [[0.1, 1], [0.1, 1], [0, 1], [0,5]]
         }
+

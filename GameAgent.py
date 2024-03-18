@@ -33,6 +33,8 @@ class GameAgent(Agent):
         self.beta = beta                # beta controls homophily together with alpha
         self.rewiring_p = rewiring_p
         self.wealth = 0              # wealth is the (starting) total payoff 
+        self.payoff_list = [0] * 5
+        self.recent_wealth = 0
 
         self.model = model
 
@@ -87,8 +89,29 @@ class GameAgent(Agent):
         return P_con
         """
     
+    def weighted_sum(self, pay_off_list):
+        if len(pay_off_list) != 5:
+            raise ValueError("Input list must contain exactly 5 numbers")
 
+        weights = [0.2 * (i + 1) for i in range(5)]
+        total_weighted_sum = sum(num * weight for num, weight in zip(pay_off_list, weights))
+        
+        return total_weighted_sum
     
+    def fifo_shift_payoff(self, payoff_list, payoff):
+        if len(payoff_list) == 0:
+            return payoff_list  # Return empty list if payoff_list is empty
+        
+        # Shift elements in the payoff_list towards the beginning
+        for i in range(len(payoff_list) - 1):
+            payoff_list[i] = payoff_list[i + 1]
+        
+        # Add the new payoff at the end
+        payoff_list[-1] = payoff
+        
+        return payoff_list
+        
+
     def get_rewiring_prob(self, neighbors, alpha, beta, connect=False):
 
         
@@ -239,6 +262,8 @@ class GameAgent(Agent):
             return (chooser.game, chooser_gChooser_Prob_S0, notchooser_gchooser_Prob_S0)
         else:
             return (notChooser.game, chooser_gNotChooser_Prob_S0, notchooser_gNotChooser_Prob_S0)
+    
+    
 
 
 
@@ -272,10 +297,16 @@ class GameAgent(Agent):
 
         # The game is played.
         (payoff0, payoff1) = game.playGame(P0_strategy, P1_strategy)
+        
 
         # Both players get their respective payoffs.
         self.wealth += payoff0
+        self.payoff_list = self.fifo_shift_payoff(self.payoff_list, payoff0)
+        self.recent_wealth = self.weighted_sum(self.payoff_list)
+
         other_agent.wealth += payoff1
+        other_agent.pay_off_list = other_agent.fifo_shift_payoff(other_agent.payoff_list, payoff1)
+        other_agent.recent_wealth = other_agent.weighted_sum(other_agent.payoff_list)
 
         # Add that they played one game
         self.games_played += 1

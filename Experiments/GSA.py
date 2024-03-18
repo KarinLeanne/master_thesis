@@ -103,7 +103,7 @@ def global_sensitivity_analysis():
         param_values = saltelli.sample(problem, n_samples, calc_second_order=True)
 
         # Initialize DataFrame with NaN values
-        data_columns = ['alpha', 'beta', 'rewiring_p', 'rat', 'Run', 'Wealth', 'eta', "Gini_Coefficient"]
+        data_columns = ['alpha', 'beta', 'rewiring_p', 'rat', 'Run', 'Wealth', 'Player risk aversion', 'Recent Wealth', "Gini Coefficient"]
         data = pd.DataFrame(index=range(params.n_steps * len(param_values)), columns=data_columns)
 
         # Add this line to properly initialize 'Gini Coefficient' column
@@ -112,7 +112,7 @@ def global_sensitivity_analysis():
         batch = BatchRunner(GamesModel, 
                     max_steps=params.n_steps,
                     variable_parameters={name: [] for name in problem['names']},
-                    agent_reporters={"Wealth": "wealth", "Player risk aversion": "eta"},
+                    agent_reporters={"Wealth": "wealth", "Player risk aversion": "eta", "Recent Wealth": "recent_wealth"},
                     model_reporters={"Gini Coefficient": GamesModel.get_gini_coef})
 
 
@@ -128,7 +128,7 @@ def global_sensitivity_analysis():
 
                 # Save results directly to data DataFrame
                 data.iloc[count, 0:4] = prmvalues
-                data.iloc[count, 4:9] = count, batch.get_agent_vars_dataframe()['Wealth'].iloc[count], batch.get_agent_vars_dataframe()['Player risk aversion'].iloc[count], batch.get_model_vars_dataframe()['Gini Coefficient'].iloc[count]
+                data.iloc[count, 4:9] = count, batch.get_agent_vars_dataframe()['Wealth'].iloc[count], batch.get_agent_vars_dataframe()['Player risk aversion'].iloc[count], batch.get_agent_vars_dataframe()['Recent Wealth'].iloc[count], batch.get_model_vars_dataframe()['Gini Coefficient'].iloc[count]
 
                 count += 1
                 clear_output()
@@ -142,8 +142,11 @@ def global_sensitivity_analysis():
     # Perform Sobol analysis for Wealth
     sensitivity_analysis_for_variable(problem, data, "Wealth", "Wealth")
 
+    # Perform Sobol analysis for Wealth
+    sensitivity_analysis_for_variable(problem, data, "Recent Wealth", "Recent Wealth")
+
     # Perform Sobol analysis for eta
-    sensitivity_analysis_for_variable(problem, data, "Risk Aversion", "eta")
+    sensitivity_analysis_for_variable(problem, data, "Risk Aversion", "Player risk aversion")
 
     # Perform Sobol analysis for Gini Coefficient
-    sensitivity_analysis_for_variable(problem, data,"Gini Coefficient", "Gini_Coefficient")
+    sensitivity_analysis_for_variable(problem, data,"Gini Coefficient", "Gini Coefficient")

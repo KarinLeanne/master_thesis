@@ -11,7 +11,7 @@ import utils
 import Experiments.ExperimentsNetwork as expN
 import Experiments.ExperimentsGameChoice as expGC
 import Experiments.ExperimentsUpdating as expU
-import Experiments.Sobol as Sobol
+import Experiments.GSA as GSA
 import Experiments.OFAT as OFAT
 
 params = utils.get_config()
@@ -22,11 +22,11 @@ def run_experiment(experiment_function):
     except Exception as e:
         print(f"Error in {experiment_function.__name__}: {e}")
 
-def main():
 
-    expU.speedOfUpdatingRewiring_vs_UV()
 
-    
+
+def main():   
+
     # Experiments on Gamechoice
     run_experiment(expGC.baselineExperiments)
     run_experiment(expGC.baselineExperiments_NH)
@@ -35,7 +35,7 @@ def main():
     run_experiment(expGC.effect_of_rationality_on_QRE)
     run_experiment(expGC.track_num_games_in_pop)
     run_experiment(expGC.gini_over_time)
-    run_experiment(expGC.run_ofat)
+    run_experiment(expGC.run_ofat_GC)
 
     # Experiments on Updating Mechanisms
     run_experiment(expU.speedOfUpdatingRewiring_vs_UV)
@@ -49,7 +49,8 @@ def main():
     run_experiment(expN.run_ofat_network)
 
     # Run global sensitivity analysis
-    run_experiment(Sobol.global_sensitivity_analysis)
+    run_experiment(GSA.global_sensitivity_analysis)
+
     
     
 

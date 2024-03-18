@@ -109,7 +109,7 @@ class GamesModel(Model):
             #model_reporters={"Mean Degree" : self.get_mean_degree, "Var of Degree" : self.get_variance_degree, "Avg Clustering" : self.get_clustering_coef, "Game Distribution" : "game_list"},
             model_reporters={"M: Mean Degree" : self.get_mean_degree, "M: Var of Degree" : self.get_variance_degree, "M: Avg Clustering" : self.get_clustering_coef, "Gini Coefficient": self.get_gini_coef,
                              "Unique Games": self.get_unique_games, "Degree Distr": self.get_degree_distribution, "e_n": "e_n", "e_g": "e_g", "Game data": self.get_game_data},
-            agent_reporters={"Wealth": "wealth","Player risk aversion": "eta", "UV": "game.UV", "Games played": "games_played"}
+            agent_reporters={"Wealth": "wealth","Player risk aversion": "eta", "UV": "game.UV", "Games played": "games_played", "Recent Wealth": "recent_wealth"}
         )
 
 

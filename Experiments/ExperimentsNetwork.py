@@ -183,6 +183,7 @@ def run_ofat_network():
     path_gini = utils.make_path("Data", "Networks", "ofat_gini")
     path_wealth = utils.make_path("Data", "Networks", "ofat_wealth")
     path_risk_aversion = utils.make_path("Data", "Networks", "ofat_risk_aversion")
+    path_recent_wealth = utils.make_path("Data", "Networks", "ofat_recent_wealth")
 
     # For Gini Coefficient (model-level)
     if os.path.isfile(path_gini):
@@ -208,10 +209,19 @@ def run_ofat_network():
         df_ofat_risk_aversion = OFAT.ofat(agent_reporters = risk_reporters, level='agent')
         df_ofat_risk_aversion.to_excel(path_risk_aversion, index=False)
 
+    # For recent wealth (agent-level)
+    if os.path.isfile(path_recent_wealth):
+        df_ofat_recent_wealth = pd.read_excel(path_recent_wealth)
+    else:
+        recent_wealth_reporters = {"Recent Wealth": "recent_wealth"}
+        df_ofat_recent_wealth = OFAT.ofat(agent_reporters = recent_wealth_reporters, level='agent')
+        df_ofat_recent_wealth.to_excel(path_recent_wealth, index=False)
+
     # Vizualize the ofat
     OFAT.plot_vs_independent('Networks', df_ofat_gini, "Gini Coefficient")
     OFAT.plot_vs_independent('Networks', df_ofat_wealth, "Wealth")
     OFAT.plot_vs_independent('Networks', df_ofat_risk_aversion, "Player risk aversion")
+    OFAT.plot_vs_independent('Networks', df_ofat_recent_wealth, "Recent Wealth")
 
 
 
