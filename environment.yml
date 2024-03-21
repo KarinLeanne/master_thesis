@@ -142,3 +142,5 @@ dependencies:
     - tqdm==4.65.0
     - tzdata==2023.3
     - urllib3==1.26.15
+    - xlsxwriter==3.2.0
+prefix: C:\Users\karin\anaconda3\envs\master_thesis
