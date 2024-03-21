@@ -17,18 +17,17 @@ import Experiments.OFAT as OFAT
 params = utils.get_config()
 
 def run_experiment(experiment_function):
+
+    print(f"Start Experiment: {experiment_function.__name__}")
+
     try:
         experiment_function()
+        print(f"Experiment {experiment_function.__name__} completed successfully.\n")
     except Exception as e:
-        print(f"Error in {experiment_function.__name__}: {e}")
-
-
-
+        print(f"Error in {experiment_function.__name__}: {e}\n")
 
 def main():   
 
-    # Experiments on Gamechoice
-    
     run_experiment(expGC.baselineExperiments)
     run_experiment(expGC.baselineExperiments_NH)
     run_experiment(expGC.effect_of_risk_distribution_on_wealth)
@@ -40,6 +39,7 @@ def main():
 
     # Experiments on Updating Mechanisms
     run_experiment(expU.speedOfUpdatingRewiring_vs_UV)
+    
 
     # Experiments on Network
     run_experiment(expN.run_default_data)
@@ -51,15 +51,7 @@ def main():
 
     # Run global sensitivity analysis
     run_experiment(GSA.global_sensitivity_analysis)
-
-    
-    
-
-
-
-    
-    
-    
+     
 
 if __name__ == "__main__":
     main()

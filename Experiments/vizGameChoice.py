@@ -68,7 +68,7 @@ def viz_time_series_agent_data_single(df, measure, name_measure, NH = False):
 
 
 def viz_time_series_agent_data_rationality_single(df, NH = False):
-    viz_time_series_agent_data_single(df, "Player risk aversion", "Player Risk Aversion", NH = False)
+    viz_time_series_agent_data_single(df, "Player Risk Aversion", "Player Risk Aversion", NH = False)
 
 
 def viz_time_series_agent_data_pay_off_single(df, NH = False):
@@ -117,13 +117,13 @@ def viz_time_series_agent_data_multiple(df, measure, name_measure, indep_var):
 
 
 def viz_time_series_agent_data_rationality_for_rat_dist(df):
-    viz_time_series_agent_data_multiple(df, "Player risk aversion", "Player Risk Aversion", "Rationality Distribution")
+    viz_time_series_agent_data_multiple(df, "Player Risk Aversion", "Player Risk Aversion", "Rationality Distribution")
 
 def viz_time_series_agent_data_pay_off_for_rat_dist(df):
     viz_time_series_agent_data_multiple(df, "Wealth", "Player Wealth", "Rationality Distribution")
 
 def viz_time_series_agent_data_rationality_for_util(df):
-    viz_time_series_agent_data_multiple(df, "Player risk aversion", "Player Risk Aversion", "Utility Function")
+    viz_time_series_agent_data_multiple(df, "Player Risk Aversion", "Player Risk Aversion", "Utility Function")
 
 def viz_time_series_agent_data_pay_off_for_util(df):
     viz_time_series_agent_data_multiple(df, "Wealth", "Player Wealth", "Utility Function")
@@ -241,7 +241,7 @@ def viz_corrrelation(df, NH = False):
         subset_data = df[df['Step'] == step]
 
         # Scatter plot with regression line
-        sns.regplot(x='Player risk aversion', y='Wealth', data=subset_data, scatter_kws={'alpha': 0.5}, ax=axs[idx])
+        sns.regplot(x='Player Risk Aversion', y='Wealth', data=subset_data, scatter_kws={'alpha': 0.5}, ax=axs[idx])
         axs[idx].set_title(f'Scatter Plot at Step {step}')
         axs[idx].set_xlabel('Risk Averseness')
         axs[idx].set_ylabel('Pay-off')

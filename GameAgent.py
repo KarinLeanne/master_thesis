@@ -11,6 +11,7 @@ import numpy as np
 from math import exp
 import scipy as sp
 from mesa import Agent
+import copy
 
 
 import Game
@@ -139,70 +140,76 @@ class GameAgent(Agent):
         return P_con
     
 
-    def get_first_order_neighbours(self):
-        subgraph0 = nx.ego_graph(self.model.graph, self.unique_id ,radius=0)
-        subgraph1 = nx.ego_graph(self.model.graph, self.unique_id ,radius=1)
-        subgraph1.remove_nodes_from(subgraph0.nodes())
-        return list(subgraph1.nodes())
+    def get_non_neighbors(self):
+        node = self.id
+        # Get all nodes in the graph
+        all_nodes = list(self.model.graph.nodes())
+        # Remove node A from the list
+        all_nodes.remove(node)
+        # Get first-order neighbors of node A
+        first_order_neighbors = list(self.model.graph.neighbors(node))
+        # Remove first-order neighbors from the list
+        non_neighbors = [node for node in all_nodes if node not in first_order_neighbors]
+        return non_neighbors
 
-    def get_second_order_neighbours(self):
-        subgraph0 = nx.ego_graph(self.model.graph, self.unique_id ,radius=0)
-        subgraph1 = nx.ego_graph(self.model.graph, self.unique_id ,radius=1)
-        subgraph2 = nx.ego_graph(self.model.graph, self.unique_id ,radius=2)
-        subgraph2.remove_nodes_from(subgraph0.nodes())
-        subgraph2.remove_nodes_from(subgraph1.nodes())
-        return list(subgraph2.nodes())
+    def get_second_order_neighbors(self):
+        node = self.id
+        # Get the first-order neighbors of node B
+        first_order_neighbors = set(self.model.graph.neighbors(node))
+        # Initialize a set to store second-order neighbors
+        second_order_neighbors = set()
+        # Iterate over the first-order neighbors
+        for neighbor in first_order_neighbors:
+            # Get the neighbors of the current neighbor excluding node B and its first-order neighbors
+            second_order_neighbors.update(set(self.model.graph.neighbors(neighbor)) - first_order_neighbors - {node})
+        return list(second_order_neighbors)
+    
+    def get_valid_neighbors(self):
+        valid_neighbors = []
+        node = self.id
+        # Get all neighbors of the node
+        neighbors = list(self.model.graph.neighbors(node))
+        # Iterate through each neighbor
+        for neighbor in neighbors:
+            # Make a copy of the graph
+            graph_copy = copy.deepcopy(self.model.graph)
+            graph_copy.remove_edge(node, neighbor)
+            # Check if removing the connection with 'node' will not disconnect the network
+            if nx.is_connected(graph_copy):
+                valid_neighbors.append(neighbor)
+        return valid_neighbors
     
 
     def rewire(self, alpha, beta, rewiring_p):
-
+        
+        # Randomly determine if rewiring probability threshold is met
         if np.random.uniform() < rewiring_p:
-            self.model.e_n += 1
 
-            # Remove an edge if agent has neighbour
-            first_order_neighbours = self.get_first_order_neighbours()
-            eligable_neighbours = [neighbor for neighbor in first_order_neighbours if self.model.graph.degree(neighbor) > 1]
-
-            if len(eligable_neighbours) > 1:
-                P_con = self.get_rewiring_prob(eligable_neighbours, alpha, beta, connect=False)
+            # Only rewire edge if it can be done without disconnecting the network
+            candidates_removal = self.get_valid_neighbors()
+            if len(candidates_removal) > 1:
+                self.model.e_n += 1
+                # Calculate probablties of removal
+                P_con = self.get_rewiring_prob(candidates_removal, alpha, beta, connect=False)
                 # Make choice from first-order neighbours based on probability
-                removed_neighbor = np.random.choice([node for node in first_order_neighbours if self.model.graph.degree(node) > 1], p=P_con)
-                self.model.graph.remove_edge(self.unique_id, removed_neighbor)
+                removed_neighbor = np.random.choice(candidates_removal, p=P_con)
+                self.model.graph.remove_edge(self.id, removed_neighbor)
 
-            # Else remove a random edge in the network
-            # Issue could remove last edge someone has
-            else:
-                # Get all edges
-                edges = list(self.model.graph.edges())
-                # Filter edges to exclude those where either node has a degree of 1
-                valid_edges = [(u, v) for (u, v) in edges if self.model.graph.degree(u) > 1 and self.model.graph.degree(v) > 1]
-                d_edge = self.random.choice(valid_edges)
-                self.model.graph.remove_edge(d_edge[0], d_edge[1])
+                # Add an edge if the agent has second order neighbours
+                candidates_connection = self.get_second_order_neighbors()
+                if len(candidates_connection) > 0:
+                    P_con = self.get_rewiring_prob(candidates_connection, alpha, beta)
+                    # Make choice from second-order neighbours based on probability
+                    new_neighbor = np.random.choice(candidates_connection, p=P_con)
+                    self.model.graph.add_edge(self.id, new_neighbor)
 
-            second_order_neighbours = self.get_second_order_neighbours()
-            # Add an edge if the agent has second order neighbours
-            if len(second_order_neighbours) > 0:
-                P_con = self.get_rewiring_prob(second_order_neighbours, alpha, beta)
-                # Make choice from second-order neighbours based on probability
-                add_neighbor = np.random.choice(second_order_neighbours, p=P_con)
-                self.model.graph.add_edge(self.unique_id, add_neighbor)
-
-            # Else add a random edge in the network
-            else:
-                # Pick a random agent (node)
-                first_node = np.random.choice(self.model.graph.nodes())
-                all_nodes = list(self.model.graph.nodes())
-                neighbours = list(self.model.graph.neighbors(first_node)) + [first_node]
-
-                # Remove the agent and all its neighbours from the candidates
-                possible_nodes = [x for x in all_nodes if x not in neighbours]
-                # Make a connection with another randomn agent (node)
-                second_node = np.random.choice(list(possible_nodes))
-                self.nNeighbors = self.model.graph.degree(self.id)
-                self.model.graph.add_edge(first_node, second_node)
+                # Else make a connection with a random node
+                else:
+                    candidates_connection = self.get_non_neighbors()
+                    new_neighbor = np.random.choice(candidates_connection)
+                    self.model.graph.add_edge(self.id, new_neighbor)
 
 
-            
 
     def getPlayerStrategyProbs(self, other_agent):
         '''

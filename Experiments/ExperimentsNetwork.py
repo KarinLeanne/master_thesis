@@ -16,7 +16,7 @@ import Experiments.vizNetworks as viz
 
 params = utils.get_config()
 
-def mean_measures_per_timestep(rewiring_p, alpha, beta, measures_of_interest = ["M: Mean Degree", "M: Var of Degree", "M: Avg Clustering"], networks = params.networks):
+def mean_measures_per_timestep(rewiring_p, alpha, beta, measures_of_interest = ["M: Mean Degree", "M: Var of Degree", "M: Avg Clustering", "M: Avg Path Length"], networks = params.networks):
     '''
     Description: Runs the model simulation for alle specified network and adds the collected data to a dataframe
     Input: 
@@ -65,7 +65,7 @@ def effect_of_rewiring_p_on_variance_and_clustering(alpha = params.alpha, beta =
 
         for rewiring_p in rewiring_ps:
             # Data_model_partial contains data from one network
-            df = mean_measures_per_timestep(rewiring_p, alpha, beta, measures_of_interest= ["M: Var of Degree", "M: Avg Clustering", "Gini Coefficient"])
+            df = mean_measures_per_timestep(rewiring_p, alpha, beta, measures_of_interest= ["M: Var of Degree", "M: Avg Clustering", "M: Avg Path Length", "Gini Coefficient"])
             df['rewiring_p'] = rewiring_p
             # Add partial data to the network that needs to contain the full data
             df_rewiring_p = pd.concat([df_rewiring_p, df])
@@ -97,7 +97,7 @@ def effect_of_triangle_prob_on_variance_and_clustering(rewiring_p = params.rewir
 
         for triangle_p in triangle_probs:
             # Data_model_partial contains data from one network
-            df = mean_measures_per_timestep(rewiring_p, alpha, beta, measures_of_interest= ["M: Var of Degree", "M: Avg Clustering"], networks=[("HK", 4, triangle_p)])
+            df = mean_measures_per_timestep(rewiring_p, alpha, beta, measures_of_interest= ["M: Var of Degree", "M: Avg Clustering", "M: Avg Path Length"], networks=[("HK", 4, triangle_p)])
             df['triangle_p'] = triangle_p
             # Add partial data to the network that needsa to contain the full data
             df_triangle_prob = pd.concat([df_triangle_prob, df])
@@ -127,7 +127,7 @@ def effect_of_alpha_beta_on_variance_and_clustering(rewiring_p = params.rewiring
         alphas = np.linspace(0.0, 1.0, 5)
         for alpha in alphas:
             # Data_model_partial contains data from one network
-            df = mean_measures_per_timestep(rewiring_p, alpha, beta, measures_of_interest= ["M: Var of Degree", "M: Avg Clustering"])
+            df = mean_measures_per_timestep(rewiring_p, alpha, beta, measures_of_interest= ["M: Var of Degree", "M: Avg Clustering", "M: Avg Path Length"])
             df['alpha'] = alpha
             # Add partial data to the network that needsa to contain the full data
             df_alpha = pd.concat([df_alpha, df])
@@ -137,7 +137,7 @@ def effect_of_alpha_beta_on_variance_and_clustering(rewiring_p = params.rewiring
 
         for beta in betas:
             # Data_model_partial contains data from one network
-            df = mean_measures_per_timestep(rewiring_p, alpha, beta, measures_of_interest= ["M: Var of Degree", "M: Avg Clustering"])
+            df = mean_measures_per_timestep(rewiring_p, alpha, beta, measures_of_interest= ["M: Var of Degree", "M: Avg Clustering", "M: Avg Path Length"])
             df['beta'] = beta
             # Add partial data to the network that needsa to contain the full data
             df_beta = pd.concat([df_beta, df])
@@ -177,7 +177,7 @@ def run_default_data():
         df_model.to_excel(path_model, index=False)
 
     viz.viz_histogram_over_time(df_agent, "Games played", bins=40)
-    viz.viz_Degree_Distr(df_model, "Degree Distr", bins=40)
+    viz.viz_Degree_Distr(df_model, "Degree Distr", bins=10)
 
 def run_ofat_network():
     path_gini = utils.make_path("Data", "Networks", "ofat_gini")
@@ -201,11 +201,11 @@ def run_ofat_network():
         df_ofat_wealth = OFAT.ofat(agent_reporters = wealth_reporters, level='agent')
         df_ofat_wealth.to_excel(path_wealth, index=False)
 
-    # For Player risk aversion (agent-level)
+    # For Player Risk Aversion (agent-level)
     if os.path.isfile(path_risk_aversion):
         df_ofat_risk_aversion = pd.read_excel(path_risk_aversion)
     else:
-        risk_reporters = {"Player risk aversion": "eta"}
+        risk_reporters = {"Player Risk Aversion": "eta"}
         df_ofat_risk_aversion = OFAT.ofat(agent_reporters = risk_reporters, level='agent')
         df_ofat_risk_aversion.to_excel(path_risk_aversion, index=False)
 
@@ -220,7 +220,7 @@ def run_ofat_network():
     # Vizualize the ofat
     OFAT.plot_vs_independent('Networks', df_ofat_gini, "Gini Coefficient")
     OFAT.plot_vs_independent('Networks', df_ofat_wealth, "Wealth")
-    OFAT.plot_vs_independent('Networks', df_ofat_risk_aversion, "Player risk aversion")
+    OFAT.plot_vs_independent('Networks', df_ofat_risk_aversion, "Player Risk Aversion")
     OFAT.plot_vs_independent('Networks', df_ofat_recent_wealth, "Recent Wealth")
 
 

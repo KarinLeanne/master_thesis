@@ -107,9 +107,9 @@ class GamesModel(Model):
         # Collect model timestep data.
         self.datacollector = DataCollector(
             #model_reporters={"Mean Degree" : self.get_mean_degree, "Var of Degree" : self.get_variance_degree, "Avg Clustering" : self.get_clustering_coef, "Game Distribution" : "game_list"},
-            model_reporters={"M: Mean Degree" : self.get_mean_degree, "M: Var of Degree" : self.get_variance_degree, "M: Avg Clustering" : self.get_clustering_coef, "Gini Coefficient": self.get_gini_coef,
+            model_reporters={"M: Mean Degree" : self.get_mean_degree, "M: Var of Degree" : self.get_variance_degree, "M: Avg Clustering" : self.get_clustering_coef, "M: Avg Path Length" : self.get_average_path_length, "Gini Coefficient": self.get_gini_coef,
                              "Unique Games": self.get_unique_games, "Degree Distr": self.get_degree_distribution, "e_n": "e_n", "e_g": "e_g", "Game data": self.get_game_data},
-            agent_reporters={"Wealth": "wealth","Player risk aversion": "eta", "UV": "game.UV", "Games played": "games_played", "Recent Wealth": "recent_wealth"}
+            agent_reporters={"Wealth": "wealth","Player Risk Aversion": "eta", "UV": "game.UV", "Games played": "games_played", "Recent Wealth": "recent_wealth"}
         )
 
 
@@ -169,6 +169,9 @@ class GamesModel(Model):
         Output: Clustering coefficent network 
         '''
         return nx.average_clustering(self.graph)
+    
+    def get_average_path_length(self):
+        return nx.average_shortest_path_length(self.graph)
     
     def get_gini_coef(self):
         wealth = np.array([agent.wealth for agent in self.agents])

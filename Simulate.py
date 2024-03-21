@@ -67,7 +67,7 @@ def simulate(N = params.n_agents,
     agent_data = pd.DataFrame(columns=['Round'])
 
     for round in range(rounds):
-        print("round", round)
+        print("Round:", round)
         model = gm.GamesModel(
                  N = N, 
                  rewiring_p = rewiring_p, 

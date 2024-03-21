@@ -32,7 +32,7 @@ def viz_network_measures_over_timesteps(df):
     mean_measures = list(df.loc[:, df.columns.str.contains('M:')].columns)
     std_measures = list(df.loc[:, df.columns.str.contains('STD:')].columns)
 
-    fig, axs = plt.subplots(len(networks), len(mean_measures), sharex='col', sharey='row')
+    fig, axs = plt.subplots(len(mean_measures), len(networks), sharex='col', sharey='row')
 
 
     # Make plot per measure and networktype
