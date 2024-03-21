@@ -28,7 +28,7 @@ def run_experiment(experiment_function):
 def main():   
 
     # Experiments on Gamechoice
-    """
+    
     run_experiment(expGC.baselineExperiments)
     run_experiment(expGC.baselineExperiments_NH)
     run_experiment(expGC.effect_of_risk_distribution_on_wealth)
@@ -40,18 +40,17 @@ def main():
 
     # Experiments on Updating Mechanisms
     run_experiment(expU.speedOfUpdatingRewiring_vs_UV)
-    """
 
     # Experiments on Network
-    #run_experiment(expN.run_default_data)
+    run_experiment(expN.run_default_data)
     run_experiment(expN.time_series_mean_network_measures)
-    #run_experiment(expN.effect_of_alpha_beta_on_variance_and_clustering)
-    #run_experiment(expN.effect_of_rewiring_p_on_variance_and_clustering)
-    #run_experiment(expN.effect_of_triangle_prob_on_variance_and_clustering)
-    #run_experiment(expN.run_ofat_network)
+    run_experiment(expN.effect_of_alpha_beta_on_variance_and_clustering)
+    run_experiment(expN.effect_of_rewiring_p_on_variance_and_clustering)
+    run_experiment(expN.effect_of_triangle_prob_on_variance_and_clustering)
+    run_experiment(expN.run_ofat_network)
 
     # Run global sensitivity analysis
-    #run_experiment(GSA.global_sensitivity_analysis)
+    run_experiment(GSA.global_sensitivity_analysis)
 
     
     
