@@ -4,7 +4,7 @@
 
 n_steps = 560             # Must be a multiple of 8
 n_agents = 500
-n_rounds = 2
+n_rounds = 3
 
 rewiring_p = 0.6           # Has to be between 0 and 1
 alpha = 0.5                # alpha is the homophilic parameter
