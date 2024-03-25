@@ -90,63 +90,99 @@ def sensitivity_analysis_for_variable(problem, data, output_variable, data_colum
     plot_global(Si, problem, title=output_variable)
 
 def global_sensitivity_analysis():
-    path = utils.make_path("Data", "Sobol", "Sobol")
+    path_agent = utils.make_path("Data", "Sobol", "Sobol_agent")
+    path_model = utils.make_path("Data", "Sobol", "Sobol_model")
 
     # Define parameter ranges
-    problem = params.problem
+    n_samples = 6 
+    problem = {
+        'num_vars': 4,
+        'names': ['rewiring_p', 'alpha', 'beta', 'rat'],
+        'bounds': [[0, 1], [0, 1], [0, 1], [0, 5]]
+        }
 
-    if os.path.isfile(path):
-        data = pd.read_excel(path)
+    if (os.path.isfile(path_agent) and os.path.isfile(path_model)):
+        full_data_agent = pd.read_csv(path_agent)
+        full_data_model = pd.read_csv(path_model)
     else:
+
         # Generate Sobol samples
-        n_samples = params.distinct_samples
         param_values = saltelli.sample(problem, n_samples, calc_second_order=True)
 
         # Initialize DataFrame with NaN values
-        data_columns = ['alpha', 'beta', 'rewiring_p', 'rat', 'Run', 'Wealth', 'Player risk aversion', 'Recent Wealth', "Gini Coefficient"]
-        data = pd.DataFrame(index=range(params.n_steps * len(param_values)), columns=data_columns)
+        full_data_model = pd.DataFrame()
+        full_data_agent = pd.DataFrame()
 
-        # Add this line to properly initialize 'Gini Coefficient' column
-        data['Gini_Coefficient'] = np.nan
+        # Define model reporters
+        model_reporters = {
+            "M: Mean Degree": lambda m: m.get_mean_degree(),
+            "M: Var of Degree": lambda m: m.get_variance_degree(),
+            "M: Avg Clustering": lambda m: m.get_clustering_coef(),
+            "M: Avg Path Length": lambda m: m.get_average_path_length(),
+            "Gini Coefficient": lambda m: m.get_gini_coef()
+        }
+
+        agent_reporters = {
+            "Wealth": "wealth", 
+            "Player Risk Aversion": "eta",
+            "Recent Wealth": "recent_wealth"
+        }
 
         batch = BatchRunner(GamesModel, 
-                    max_steps=params.n_steps,
-                    variable_parameters={name: [] for name in problem['names']},
-                    agent_reporters={"Wealth": "wealth", "Player risk aversion": "eta", "Recent Wealth": "recent_wealth"},
-                    model_reporters={"Gini Coefficient": GamesModel.get_gini_coef})
-
+                            max_steps=params.n_steps,
+                            variable_parameters={name: [] for name in problem['names']},
+                            agent_reporters=agent_reporters,
+                            model_reporters=model_reporters)
+        # Initialize run count
+        run_count = 0  
 
         # Run the model for each set of parameters
-        count = 0
-        for _ in range(params.n_steps):
-            for values in param_values:
-                prmvalues = list(values)
-                variable_parameters = {name: val for name, val in zip(problem['names'], prmvalues)}
+        for values in param_values:
+            prmvalues = list(values)
+            variable_parameters = {name: val for name, val in zip(problem['names'], prmvalues)}
 
-                # Run model
-                batch.run_iteration(variable_parameters, tuple(values), count)
+            # Run model
+            batch.run_iteration(variable_parameters, tuple(values), run_count)
 
-                # Save results directly to data DataFrame
-                data.iloc[count, 0:4] = prmvalues
-                data.iloc[count, 4:9] = count, batch.get_agent_vars_dataframe()['Wealth'].iloc[count], batch.get_agent_vars_dataframe()['Player risk aversion'].iloc[count], batch.get_agent_vars_dataframe()['Recent Wealth'].iloc[count], batch.get_model_vars_dataframe()['Gini Coefficient'].iloc[count]
+            # Increment run_count
+            run_count += 1
 
-                count += 1
-                clear_output()
-                print(f'running... ({count / (len(param_values) * (params.n_steps)) * 100:.2f}%)', end='\r', flush=True)
+            # Get model and agent data
+            model_data = batch.get_model_vars_dataframe()
+            agent_data = batch.get_agent_vars_dataframe()
 
+            # Append parameter values to model and agent data
+            model_data['rewiring_p'] = prmvalues[0]
+            model_data['alpha'] = prmvalues[1]
+            model_data['beta'] = prmvalues[2]
+            model_data['rat'] = prmvalues[3]
+
+            agent_data['rewiring_p'] = prmvalues[0]
+            agent_data['alpha'] = prmvalues[1]
+            agent_data['beta'] = prmvalues[2]
+            agent_data['rat'] = prmvalues[3]
+
+
+            # Concatenate model and agent data with full data
+            full_data_model = pd.concat([full_data_model, model_data], ignore_index=True)
+            full_data_agent = pd.concat([full_data_agent, agent_data], ignore_index=True)
+
+            clear_output()
+            print(f'running... ({run_count / len(param_values) * 100:.2f}%)', end='\r', flush=True)
 
         # Save data
-        data.to_excel(path, index=False)
+        full_data_agent.to_csv(path_agent, index=False)
+        full_data_model.to_csv(path_model, index=False)
             
 
     # Perform Sobol analysis for Wealth
-    sensitivity_analysis_for_variable(problem, data, "Wealth", "Wealth")
+    sensitivity_analysis_for_variable(problem, full_data_agent, "Wealth", "Wealth")
 
     # Perform Sobol analysis for Wealth
-    sensitivity_analysis_for_variable(problem, data, "Recent Wealth", "Recent Wealth")
+    sensitivity_analysis_for_variable(problem, full_data_agent, "Recent Wealth", "Recent Wealth")
 
     # Perform Sobol analysis for eta
-    sensitivity_analysis_for_variable(problem, data, "Risk Aversion", "Player risk aversion")
+    sensitivity_analysis_for_variable(problem, full_data_agent, "Risk Aversion", "Player Risk Aversion")
 
     # Perform Sobol analysis for Gini Coefficient
-    sensitivity_analysis_for_variable(problem, data,"Gini Coefficient", "Gini Coefficient")
+    sensitivity_analysis_for_variable(problem, full_data_model,"Gini Coefficient", "Gini Coefficient")

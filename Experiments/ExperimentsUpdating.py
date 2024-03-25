@@ -22,7 +22,7 @@ def speedOfUpdatingRewiring_vs_UV():
 
     path = utils.make_path("Data", "UpdatingMechanism", "SpeedUVvsNetwork")
     if os.path.isfile(path):
-        df = pd.read_excel(path)
+        df = pd.read_csv(path)
     else:
         df = pd.DataFrame()
 
@@ -35,7 +35,7 @@ def speedOfUpdatingRewiring_vs_UV():
             df = pd.concat([df_network, df])
         df["Number of Unique Games"] = df['Unique Games'].apply(lambda x: len(x))
         df["Speed_Ratio"] = df["e_g"] / df["e_n"]
-        df.to_excel(path, index=False)
+        df.to_csv(path, index=False)
 
     # Replace spaces with underscores in column names
     df.columns = df.columns.str.replace(' ', '_')

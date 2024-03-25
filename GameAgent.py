@@ -125,10 +125,7 @@ class GameAgent(Agent):
 
         # Use the social attachement equation to get probabilities
         epsilon = 1e-12
-        if connect:
-            P_con = 1 / (1 + np.power((1/beta) * pay_diff, alpha))
-        else:
-            P_con = 1 / (1 + np.power((1/beta) * np.maximum(pay_diff,epsilon), -alpha))
+        P_con = 1 / (1 + np.power((1/beta) * np.maximum(pay_diff,epsilon), -alpha))
 
         # Check if the sum of probabilities is zero
         if np.sum(P_con) == 0:

@@ -58,7 +58,7 @@ def effect_of_rewiring_p_on_variance_and_clustering(alpha = params.alpha, beta =
     '''
     path = utils.make_path("Data", "Networks", "Influence_Rewiring_p_On_Network")
     if os.path.isfile(path):
-        df_rewiring_p = pd.read_excel(path)
+        df_rewiring_p = pd.read_csv(path)
     else:
         df_rewiring_p = pd.DataFrame()
         rewiring_ps = np.linspace(0.0, 1.0, 5)
@@ -72,7 +72,7 @@ def effect_of_rewiring_p_on_variance_and_clustering(alpha = params.alpha, beta =
 
         #print(tabulate(df_rewiring_p, headers = 'keys', tablefmt = 'psql'))
 
-        df_rewiring_p.to_excel(path, index=False)
+        df_rewiring_p.to_csv(path, index=False)
 
     # Vizualize results of experiment
     viz.viz_effect_variable_on_network_measures(df_rewiring_p, 'rewiring_p')
@@ -89,7 +89,7 @@ def effect_of_triangle_prob_on_variance_and_clustering(rewiring_p = params.rewir
     '''
     path = utils.make_path("Data", "Networks", "Influence_Triangle_p_On_Network")
     if os.path.isfile(path):
-        df_triangle_prob = pd.read_excel(path)
+        df_triangle_prob = pd.read_csv(path)
     else:
         df_triangle_prob = pd.DataFrame()
 
@@ -102,7 +102,7 @@ def effect_of_triangle_prob_on_variance_and_clustering(rewiring_p = params.rewir
             # Add partial data to the network that needsa to contain the full data
             df_triangle_prob = pd.concat([df_triangle_prob, df])
         
-        df_triangle_prob.to_excel(path, index=False)
+        df_triangle_prob.to_csv(path, index=False)
 
     # Vizualize results of experiment
     viz.viz_effect_variable_on_network_measures(df_triangle_prob, 'triangle_p')
@@ -120,8 +120,8 @@ def effect_of_alpha_beta_on_variance_and_clustering(rewiring_p = params.rewiring
     path_beta = utils.make_path("Data", "Networks", "Influence_beta_On_Network")
 
     if os.path.isfile(path_alpha):
-        df_alpha = pd.read_excel(path_alpha)
-        df_beta = pd.read_excel(path_beta)
+        df_alpha = pd.read_csv(path_alpha)
+        df_beta = pd.read_csv(path_beta)
     else:
         df_alpha = pd.DataFrame()
         alphas = np.linspace(0.0, 1.0, 5)
@@ -142,8 +142,8 @@ def effect_of_alpha_beta_on_variance_and_clustering(rewiring_p = params.rewiring
             # Add partial data to the network that needsa to contain the full data
             df_beta = pd.concat([df_beta, df])
 
-        df_alpha.to_excel(path_alpha, index=False)
-        df_beta.to_excel(path_beta, index=False)
+        df_alpha.to_csv(path_alpha, index=False)
+        df_beta.to_csv(path_beta, index=False)
 
     # Vizualize results experiment
     viz.viz_effect_variable_on_network_measures(df_alpha, 'alpha')
@@ -154,74 +154,81 @@ def time_series_mean_network_measures():
     # Only obtain data if data does not already exist
     path = utils.make_path("Data", "Networks", "Time_Series_Mean_Network_Measures")
     if os.path.isfile(path):
-        df_measures_over_timesteps = pd.read_excel(path)
+        df_measures_over_timesteps = pd.read_csv(path)
     else:
         df_measures_over_timesteps = mean_measures_per_timestep(params.rewiring_p, params.alpha, params.beta) 
-        df_measures_over_timesteps.to_excel(path, index=False)
+        df_measures_over_timesteps.to_csv(path, index=False)
     
 
     # Vizualize results experiment
     viz.viz_network_measures_over_timesteps(df_measures_over_timesteps)
-
 
 def run_default_data():
     # Only obtain data if data does not already exist
     path_agent = utils.make_path("Data", "Networks", "Default_Sim_Agent")
     path_model = utils.make_path("Data", "Networks", "Default_Sim_Model")
     if os.path.isfile(path_agent) and os.path.isfile(path_model):
-        df_agent = pd.read_excel(path_agent)
-        df_model = pd.read_excel(path_model)
+        df_agent = pd.read_csv(path_agent)
+        df_model = pd.read_csv(path_model)
     else:
         df_model, df_agent = sim.simulate(N = params.n_agents, rewiring_p = params.rewiring_p, alpha=params.alpha, beta=params.beta, network=params.default_network, rounds = params.n_rounds, steps = params.n_steps, netRat = 0.1, partScaleFree = 1, alwaysSafe = False)
-        df_agent.to_excel(path_agent, index=False)
-        df_model.to_excel(path_model, index=False)
+        df_agent.to_csv(path_agent, index=False)
+        df_model.to_csv(path_model, index=False)
 
     viz.viz_histogram_over_time(df_agent, "Games played", bins=40)
     viz.viz_Degree_Distr(df_model, "Degree Distr", bins=10)
 
 def run_ofat_network():
-    path_gini = utils.make_path("Data", "Networks", "ofat_gini")
-    path_wealth = utils.make_path("Data", "Networks", "ofat_wealth")
-    path_risk_aversion = utils.make_path("Data", "Networks", "ofat_risk_aversion")
-    path_recent_wealth = utils.make_path("Data", "Networks", "ofat_recent_wealth")
+    path_ofat_model = utils.make_path("Data", "Networks", "df_ofat_model")
+    path_ofat_agent = utils.make_path("Data", "Networks", "df_ofat_agent")
 
-    # For Gini Coefficient (model-level)
-    if os.path.isfile(path_gini):
-        df_ofat_gini = pd.read_excel(path_gini)
+    if (os.path.isfile(path_ofat_agent) and os.path.isfile(path_ofat_model)):
+        df_ofat_agent = pd.read_csv(path_ofat_agent)
+        df_ofat_model = pd.read_csv(path_ofat_model)
     else:
-        gini_reporters = {"Gini Coefficient": lambda m: m.get_gini_coef()}
-        df_ofat_gini = OFAT.ofat(model_reporters = gini_reporters, level='model')
-        df_ofat_gini.to_excel(path_gini, index=False)
+        # Define model reporters
+        model_reporters = {
+            "M: Mean Degree": lambda m: m.get_mean_degree(),
+            "M: Var of Degree": lambda m: m.get_variance_degree(),
+            "M: Avg Clustering": lambda m: m.get_clustering_coef(),
+            "M: Avg Path Length": lambda m: m.get_average_path_length(),
+            "Gini Coefficient": lambda m: m.get_gini_coef()
+            }
 
-    # For Wealth (agent-level)
-    if os.path.isfile(path_wealth):
-        df_ofat_wealth = pd.read_excel(path_wealth)
-    else:
-        wealth_reporters = {"Wealth": "wealth"}
-        df_ofat_wealth = OFAT.ofat(agent_reporters = wealth_reporters, level='agent')
-        df_ofat_wealth.to_excel(path_wealth, index=False)
+        agent_reporters = {
+            "Wealth": "wealth", 
+            "Player Risk Aversion": "eta",
+            "Recent Wealth": "recent_wealth"
+            }
+        
+        # Define the problem
+        distinct_samples = 6 
+        problem = {
+        'num_vars': 3,
+        'names': ['rewiring_p', 'alpha', 'beta'],
+        'bounds': [[0, 1], [0, 1], [0, 1]]
+        }
 
-    # For Player Risk Aversion (agent-level)
-    if os.path.isfile(path_risk_aversion):
-        df_ofat_risk_aversion = pd.read_excel(path_risk_aversion)
-    else:
-        risk_reporters = {"Player Risk Aversion": "eta"}
-        df_ofat_risk_aversion = OFAT.ofat(agent_reporters = risk_reporters, level='agent')
-        df_ofat_risk_aversion.to_excel(path_risk_aversion, index=False)
+        # Run OFAT for all reporters
+        df_ofat_model, df_ofat_agent = OFAT.ofat(problem, distinct_samples, model_reporters=model_reporters, agent_reporters=agent_reporters)
 
-    # For recent wealth (agent-level)
-    if os.path.isfile(path_recent_wealth):
-        df_ofat_recent_wealth = pd.read_excel(path_recent_wealth)
-    else:
-        recent_wealth_reporters = {"Recent Wealth": "recent_wealth"}
-        df_ofat_recent_wealth = OFAT.ofat(agent_reporters = recent_wealth_reporters, level='agent')
-        df_ofat_recent_wealth.to_excel(path_recent_wealth, index=False)
+        # Save the results to respective paths
+        df_ofat_model.to_csv(path_ofat_model, index=False)
+        df_ofat_agent.to_csv(path_ofat_agent, index=False)
 
     # Vizualize the ofat
-    OFAT.plot_vs_independent('Networks', df_ofat_gini, "Gini Coefficient")
-    OFAT.plot_vs_independent('Networks', df_ofat_wealth, "Wealth")
-    OFAT.plot_vs_independent('Networks', df_ofat_risk_aversion, "Player Risk Aversion")
-    OFAT.plot_vs_independent('Networks', df_ofat_recent_wealth, "Recent Wealth")
+    OFAT.plot_vs_independent('Networks', df_ofat_model, "Gini Coefficient")
+    OFAT.plot_vs_independent('Networks', df_ofat_agent, "Wealth")
+    OFAT.plot_vs_independent('Networks', df_ofat_agent, "Player Risk Aversion")
+    OFAT.plot_vs_independent('Networks', df_ofat_agent, "Recent Wealth")
+
+    # Vizualize the ofat - network measures
+    OFAT.plot_vs_independent('Networks', df_ofat_model, "M: Avg Clustering")
+    OFAT.plot_vs_independent('Networks', df_ofat_model, "M: Var of Degree")
+    OFAT.plot_vs_independent('Networks', df_ofat_model, "M: Avg Path Length")
+
+
+
 
 
 

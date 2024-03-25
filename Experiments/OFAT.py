@@ -47,6 +47,7 @@ def plot_vs_independent(chapter, data, dependent_var):
             # Display legend in the last subplot
             if i == len(independent_vars) - 1:
                 ax.legend()
+
     else:  # Single subplot case
         # Filter data for the current independent variable
         independent_var = independent_vars[0]
@@ -66,6 +67,7 @@ def plot_vs_independent(chapter, data, dependent_var):
                          np.array(mean) + np.array(ci), alpha=0.2, label='CI')
 
         # Set subplot title and labels
+        dependent_var = dependent_var.replace("M: ", "")
         axes.set_title(f'{independent_var.capitalize()} vs {dependent_var}')
         axes.set_xlabel(f'{independent_var.capitalize()}')
         axes.set_ylabel(f'{dependent_var.capitalize()}')  # Set ylabel for the single subplot
@@ -81,7 +83,7 @@ def plot_vs_independent(chapter, data, dependent_var):
     plt.savefig(path)
     plt.close()
 
-def ofat(model_reporters = {}, agent_reporters= {}, level='model'):
+def ofat(problem, samples, model_reporters = {}, agent_reporters= {}):
     # Prevent mesa's deprecation warnings
     filterwarnings("ignore")
 
@@ -91,11 +93,11 @@ def ofat(model_reporters = {}, agent_reporters= {}, level='model'):
     params = utils.get_config()
     replicates = params.n_rounds
     max_steps = params.n_steps
-    distinct_samples = 4
-    problem = params.problem
+    distinct_samples = samples
 
-    data = pd.DataFrame()  # Initialize an empty DataFrame
-    
+    full_model_data = pd.DataFrame() 
+    full_agent_data = pd.DataFrame()
+
 
     for idx, var in enumerate(problem['names']):
         print(f'varying {var} for {model_reporters}{agent_reporters}')
@@ -114,21 +116,23 @@ def ofat(model_reporters = {}, agent_reporters= {}, level='model'):
         batch.run_all()
                 
         # Save the results
-        if level == 'model':
-            current_data = batch.get_model_vars_dataframe()
-        elif level == 'agent':
-            current_data = batch.get_agent_vars_dataframe()
+        model_data = batch.get_model_vars_dataframe()
+        agent_data = batch.get_agent_vars_dataframe()
 
-        current_data['IndependentVariable'] = var
-        current_data['IndependentValue'] = current_data[var]
+        model_data['IndependentVariable'] = var
+        model_data['IndependentValue'] = model_data[var]
 
+        agent_data['IndependentVariable'] = var
+        agent_data['IndependentValue'] = agent_data[var]
 
         # Drop the column with current var name
         var = var.strip("[]")
-        current_data = current_data.drop(var, axis=1)
+        model_data = model_data.drop(var, axis=1)
+        agent_data = agent_data.drop(var, axis=1)
 
         # Add to data
-        data = pd.concat([data, current_data])
+        full_model_data = pd.concat([full_model_data, model_data])
+        full_agent_data = pd.concat([full_agent_data, agent_data])
 
-    return data
+    return full_model_data, full_agent_data
 
