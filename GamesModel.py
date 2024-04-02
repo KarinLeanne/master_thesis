@@ -1,10 +1,10 @@
-### GamesModel.py
-# Specifies the GamesModel class which is a subclass of a mesa.Model. This 
-# represents the environment of the model and handles all global functionality 
-# like environment variables, data collection, initializing agents, and calling 
-# the agents' step functions each step.
-###
-
+'''
+GamesModel.py
+Specifies the GamesModel class which is a subclass of a mesa.Model. This 
+represents the environment of the model and handles all global functionality 
+like environment variables, data collection, initializing agents, and calling 
+the agents' step functions each step.
+'''
 
 from mesa import Model
 from mesa.time import RandomActivation
@@ -14,7 +14,6 @@ import networkx as nx
 import numpy as np
 import matplotlib.pyplot as plt
 from collections import Counter
-
 
 import GameAgent as ga
 import utils
@@ -55,7 +54,21 @@ class GamesModel(Model):
                  UV = (True, None, None, False), 
                  risk_distribution = "uniform", 
                  utility_function = "isoelastic"):
-        
+        '''
+        Description: Initializes the model with given parameters.
+        Inputs:
+            - N: The number of agents in a model
+            - rewiring_p: The probability that an agent rewires a connection for each timestep
+            - alpha: alpha is the homophilic parameter 
+            - beta: beta controls homophily together with alpha
+            - rat: A parameter of agent rationality
+            - network: A truple specifying the type of network
+            - partScaleFree: 
+            - alwaysOwn: Boolean, if true always choose the own strategy
+            - UV: A truple specifying whether the UV space should be generated randomly as well as the default values for U and V
+            - risk_distribution: Type of risk distribution
+            - utility_function: Type of utility function
+        '''
         self.num_agents = N
         self.schedule = RandomActivation(self)
         self.netRat = rat
@@ -64,11 +77,11 @@ class GamesModel(Model):
         self.utility_function = utility_function
         self.NH = UV[3]
         self.running = True
-         # List to store game instances
         self.games = [] 
 
         # The amount of times the games are updated (i.e the UV space) 
         self.e_g = 0
+
         # The amount of times the network is updated
         self.e_n = 0
         
@@ -83,7 +96,6 @@ class GamesModel(Model):
             self.graph = nx.powerlaw_cluster_graph(N, int(network[1]/2), network[2])
 
 
-        #//FIXME: this should be  a fixed seed network'
         #save mean degree of network
         self.initial_mean_degree = self.get_mean_degree()
 
@@ -106,7 +118,6 @@ class GamesModel(Model):
 
         # Collect model timestep data.
         self.datacollector = DataCollector(
-            #model_reporters={"Mean Degree" : self.get_mean_degree, "Var of Degree" : self.get_variance_degree, "Avg Clustering" : self.get_clustering_coef, "Game Distribution" : "game_list"},
             model_reporters={"M: Mean Degree" : self.get_mean_degree, "M: Var of Degree" : self.get_variance_degree, "M: Avg Clustering" : self.get_clustering_coef, "M: Avg Path Length" : self.get_average_path_length, "Gini Coefficient": self.get_gini_coef,
                              "Unique Games": self.get_unique_games, "Degree Distr": self.get_degree_distribution, "e_n": "e_n", "e_g": "e_g", "Game data": self.get_game_data},
             agent_reporters={"Wealth": "wealth","Player Risk Aversion": "eta", "UV": "game.UV", "Games played": "games_played", "Recent Wealth": "recent_wealth"}
@@ -114,6 +125,15 @@ class GamesModel(Model):
 
 
     def stratified_sampling(self, n_agents, space_range, blocked_area=None):
+        '''
+        Description: Perform stratified sampling to create games.
+        Inputs:
+            - n_agents: The number of agents
+            - space_range: The range of UV space
+            - blocked_area: Area to be excluded from sampling
+        Outputs:
+            - Sampled UV values
+        '''
         # Extract space range boundaries
         x_min, x_max, y_min, y_max = space_range
 
@@ -151,13 +171,17 @@ class GamesModel(Model):
     
     
     def get_degree_distribution(self):
+        '''
+        Description: Gets the degree distribution of the model network
+        Output: Degree distribution of the model network
+        '''
         return [x[1] for x in self.graph.degree()]
     
     
     def get_variance_degree(self):
         '''
         Description: Gets the variance of the degree in the model network
-        Output: variance of the degree in the model network
+        Output: Variance of the degree in the model network
         '''
         degree_list = [x[1] for x in self.graph.degree()]
         mean = self.get_mean_degree()
@@ -171,22 +195,42 @@ class GamesModel(Model):
         return nx.average_clustering(self.graph)
     
     def get_average_path_length(self):
+        '''
+        Description: Gets the average path length of the model network
+        Output: Average path length of the model network
+        '''
         return nx.average_shortest_path_length(self.graph)
     
     def get_gini_coef(self):
+        '''
+        Description: Gets the Gini coefficient of the wealth distribution among agents
+        Output: Gini coefficient of the wealth distribution
+        '''
         wealth = np.array([agent.wealth for agent in self.agents])
         return inequalipy.gini(wealth)
 
 
     def get_unique_games(self):
+        '''
+        Description: Gets the unique UV space configurations of games played by agents
+        Output: Unique UV space configurations
+        '''
         return list(set([agent.game.UV for agent in self.agents]))
     
     def get_ratio_updating_speed(self):
+        '''
+        Description: Gets the ratio of UV space updating speed to network updating speed
+        Output: Ratio of UV space updating speed to network updating speed
+        '''
         if self.e_n == 0 or  self.e_g == 0:
             return 0
         return self.e_g / self.e_n
     
     def get_game_data(self):
+        '''
+        Description: Gets the data of all games played in the model
+        Output: Data of all games played
+        '''
         game_data = []
         for game in self.games:
             game_data.append([game.name, game.play_count, game.total_payoff, game.UV])
@@ -198,3 +242,4 @@ class GamesModel(Model):
         '''
         self.schedule.step()
         self.datacollector.collect(self)
+

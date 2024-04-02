@@ -1,8 +1,8 @@
-### GameAgent.py
-# Speficies the GameAgent class which is a subclass of a mesa.Agent. This 
-# represents the agents of the model and handles characteristics and interaction
-###
-
+'''
+GameAgent.py
+Speficies the GameAgent class which is a subclass of a mesa.Agent. This 
+represents the agents of the model and handles characteristics and interaction
+'''
 
 import random as rand
 from random import random, randint
@@ -13,38 +13,43 @@ import scipy as sp
 from mesa import Agent
 import copy
 
-
 import Game
 
 P0 = UP = LEFT = RISK = 0
 P1 = DOWN = RIGHT = SAFE = 1
-
 
 class GameAgent(Agent):
 
     'The agent that will play economic games.'
 
     def __init__(self, id, model, rewiring_p = 0, alpha = 0, beta = 0, rat = 0, uvpay = (0,0), UV = (True, None, None, False), risk_aversion_distribution =  "uniform"):
+        '''
+        Description: Initializes a new instance of the GameAgent class.
+        Inputs:
+            - id: The unique identifier of the agent.
+            - model: The model in which the agent exists.
+            - rewiring_p: The probability of rewiring connections.
+            - alpha: A parameter for calculating rewiring probabilities.
+            - beta: A parameter for calculating rewiring probabilities.
+            - rat: The rationality parameter of the agent.
+            - uvpay: A tuple representing payoffs for a given game.
+            - UV: A tuple specifying whether the game is user-defined or not.
+            - risk_aversion_distribution: The distribution of risk aversion among agents.
+        Outputs: None
+        '''
         super().__init__(id, model)
         self.id = id
         self.rationality = rat
         
-        
-        self.alpha = alpha              # alpha is the homophilic parameter
-        self.beta = beta                # beta controls homophily together with alpha
+        self.alpha = alpha              
+        self.beta = beta                
         self.rewiring_p = rewiring_p
-        self.wealth = 0              # wealth is the (starting) total payoff 
+        self.wealth = 0             
         self.payoff_list = [0] * 5
         self.recent_wealth = 0
 
         self.model = model
-
-        #self.edges = list(model.graph.edges)
-        #self.full_graph = model.graph
         self.posiVals = [15, 6]
-
-        #self.added_edges = [0,0]
-        #self.removed_edges = [0, 0]
         self.games_played = 0
 
         # Each agent has a risk aversion parameter
@@ -56,7 +61,6 @@ class GameAgent(Agent):
             self.eta = np.random.gamma(shape=1)*2
         elif risk_aversion_distribution == "exponential":
             self.eta = np.random.exponential()*2
-       
         
         # eta_base is the default risk aversion parameter
         self.eta_base = self.eta        
@@ -68,29 +72,15 @@ class GameAgent(Agent):
         if not UV[0]:
             self.game = Game.Game((UV[1],UV[2]))
             self.model.games.append(self.game)
-        
-    """
-    
-    def get_rewiring_prob(self, neighbors, alpha, beta, connect = False):
-
-        payoff_diff = [np.abs(self.wealth - self.model.agents[neighbor].wealth) for neighbor in neighbors]
-        pay_diff = np.array(payoff_diff)
-        
-        # limit pay_diff to 600 such that exp(600) does not overflow
-        limit = 600
-        pay_diff[(alpha*(pay_diff-beta)) > limit] = limit
-
-        # Use softmax to get probabilities
-        softmax = lambda x :  np.exp(x)/sum(np.exp(x))
-        if connect:
-            P_con = softmax(alpha * (pay_diff - beta))
-        else:
-            P_con = softmax(-alpha * (pay_diff - beta))
-
-        return P_con
-        """
     
     def weighted_sum(self, pay_off_list):
+        '''
+        Description: Calculates the weighted sum of payoffs.
+        Inputs:
+            - pay_off_list: A list containing payoffs from previous games.
+        Outputs:
+            - total_weighted_sum: The weighted sum of payoffs.
+        '''
         if len(pay_off_list) != 5:
             raise ValueError("Input list must contain exactly 5 numbers")
 
@@ -100,6 +90,14 @@ class GameAgent(Agent):
         return total_weighted_sum
     
     def fifo_shift_payoff(self, payoff_list, payoff):
+        '''
+        Description: Shifts the elements of the payoff list and adds a new payoff at the end.
+        Inputs:
+            - payoff_list: A list containing payoffs from previous games.
+            - payoff: The payoff from the most recent game.
+        Outputs:
+            - The updated payoff list.
+        '''
         if len(payoff_list) == 0:
             return payoff_list  # Return empty list if payoff_list is empty
         
@@ -112,10 +110,17 @@ class GameAgent(Agent):
         
         return payoff_list
         
-
     def get_rewiring_prob(self, neighbors, alpha, beta, connect=False):
-
-        
+        '''
+        Description: Calculates the rewiring probabilities based on the wealth difference between agents.
+        Inputs:
+            - neighbors: A list of neighboring agents.
+            - alpha: A parameter for calculating rewiring probabilities.
+            - beta: A parameter for calculating rewiring probabilities.
+            - connect: A boolean indicating whether to connect or disconnect.
+        Outputs:
+            - P_con: A numpy array containing rewiring probabilities.
+        '''
         payoff_diff = [np.abs(self.wealth - self.model.agents[neighbor].wealth) for neighbor in neighbors]
         pay_diff = np.array(payoff_diff)
 
@@ -123,7 +128,7 @@ class GameAgent(Agent):
         limit = 600
         pay_diff[(alpha * (pay_diff - beta)) > limit] = limit
 
-        # Use the social attachement equation to get probabilities
+        # Use the social attachment equation to get probabilities
         epsilon = 1e-12
         P_con = 1 / (1 + np.power((1/beta) * np.maximum(pay_diff,epsilon), -alpha))
 
@@ -136,8 +141,13 @@ class GameAgent(Agent):
         P_con /= np.sum(P_con)
         return P_con
     
-
     def get_non_neighbors(self):
+        '''
+        Description: Retrieves non-neighboring agents in the network.
+        Inputs: None
+        Outputs:
+            - non_neighbors: A list of non-neighboring agent IDs.
+        '''
         node = self.id
         # Get all nodes in the graph
         all_nodes = list(self.model.graph.nodes())
@@ -150,6 +160,12 @@ class GameAgent(Agent):
         return non_neighbors
 
     def get_second_order_neighbors(self):
+        '''
+        Description: Retrieves second-order neighboring agents in the network.
+        Inputs: None
+        Outputs:
+            - second_order_neighbors: A list of second-order neighboring agent IDs.
+        '''
         node = self.id
         # Get the first-order neighbors of node B
         first_order_neighbors = set(self.model.graph.neighbors(node))
@@ -162,6 +178,12 @@ class GameAgent(Agent):
         return list(second_order_neighbors)
     
     def get_valid_neighbors(self):
+        '''
+        Description: Retrieves valid neighboring agents for rewiring connections.
+        Inputs: None
+        Outputs:
+            - valid_neighbors: A list of valid neighboring agent IDs.
+        '''
         valid_neighbors = []
         node = self.id
         # Get all neighbors of the node
@@ -176,17 +198,22 @@ class GameAgent(Agent):
                 valid_neighbors.append(neighbor)
         return valid_neighbors
     
-
     def rewire(self, alpha, beta, rewiring_p):
-        
+        '''
+        Description: Rewires connections between agents based on rewiring probabilities.
+        Inputs:
+            - alpha: A parameter for calculating rewiring probabilities.
+            - beta: A parameter for calculating rewiring probabilities.
+            - rewiring_p: The probability of rewiring connections.
+        Outputs: None
+        '''
         # Randomly determine if rewiring probability threshold is met
         if np.random.uniform() < rewiring_p:
-
             # Only rewire edge if it can be done without disconnecting the network
             candidates_removal = self.get_valid_neighbors()
             if len(candidates_removal) > 1:
                 self.model.e_n += 1
-                # Calculate probablties of removal
+                # Calculate probabilities of removal
                 P_con = self.get_rewiring_prob(candidates_removal, alpha, beta, connect=False)
                 # Make choice from first-order neighbours based on probability
                 removed_neighbor = np.random.choice(candidates_removal, p=P_con)
@@ -206,57 +233,42 @@ class GameAgent(Agent):
                     new_neighbor = np.random.choice(candidates_connection)
                     self.model.graph.add_edge(self.id, new_neighbor)
 
-
-
     def getPlayerStrategyProbs(self, other_agent):
         '''
-        Description: This returns the probability for each game and for each player that strategy 0 is chosen
-        based on the rationality of both agents
-        Input:
-            - other_agent: The agent chosen to play a game with
-        Output: 
-            - g0_P0_Prob_S0: The probability of player 0 choosing strategy 0 in its own game (G0)
-            - g0_P1_Prob_S0: The probability of player 1 choosing strategy 0 in the others game (G0)
-            - g1_P0_Prob_S0: The probability of player 0 choosing strategy 0 in the others game (G1)
-            - g1_P1_Prob_S0: The probability of player 1 choosing strategy 0 in its own game (G1)
-
+        Description: Returns the probability for each game and for each player that strategy 0 is chosen based on the rationality of both agents.
+        Inputs:
+            - other_agent: The agent chosen to play a game with.
+        Outputs:
+            - p0_g0_Prob_S0: The probability of player 0 choosing strategy 0 in its own game (G0).
+            - p1_g0_Prob_S0: The probability of player 1 choosing strategy 0 in the others game (G0).
+            - p0_g1_Prob_S0: The probability of player 0 choosing strategy 0 in the others game (G1).
+            - p1_g1_Prob_S0: The probability of player 1 choosing strategy 0 in its own game (G1).
         '''
-    
         p0_g0_Prob_S0 , p1_g0_Prob_S0 = self.game.getQreChance(self.rationality, other_agent.rationality, self.eta, other_agent.eta, self.model.utility_function)
         p1_g1_Prob_S0, p0_g1_Prob_S0  = other_agent.game.getQreChance(other_agent.rationality, self.rationality, other_agent.eta, self.eta, self.model.utility_function)
-        return(p0_g0_Prob_S0 , p1_g0_Prob_S0,  p0_g1_Prob_S0 , p1_g1_Prob_S0)
-    
-    """
-    
-    def softmax(self, values, temperature=1.0):
-        exp_values = np.exp(values / temperature)
-        probabilities = exp_values / np.sum(exp_values)
-        return probabilities
-    
-    
-    def getGameChooserProb(chooser, chooser_game_mean, not_chooser_game_mean):
-        '''
-        probability of choosing own game
-        '''
-        if chooser.model.alwaysSafe == True:
-            return 1 if chooser_game_mean > not_chooser_game_mean else 0
+        return(p0_g0_Prob_S0 , p1_g0_Prob_S0,  p0_g1_Prob_S0 , p1_g1_Prob_S0)  
 
-        else:
-            values = np.array([chooser_game_mean, not_chooser_game_mean])
-            return chooser.softmax(values)[0]
-    """        
 
-    
     def chooseGame(chooser, notChooser, chooser_gChooser_Prob_S0 , notchooser_gchooser_Prob_S0,  chooser_gNotChooser_Prob_S0 , notchooser_gNotChooser_Prob_S0):
         '''
-        Description This returns the game that is going to be played.
+        Description: 
+            Returns the game that is going to be played.
+        Inputs:
+            - chooser: The agent choosing the game.
+            - notChooser: The agent not choosing the game.
+            - chooser_gChooser_Prob_S0: Probability of chooser playing strategy 0 in its own game.
+            - notchooser_gchooser_Prob_S0: Probability of notChooser playing strategy 0 in chooser's game.
+            - chooser_gNotChooser_Prob_S0: Probability of chooser playing strategy 0 in notChooser's game.
+            - notchooser_gNotChooser_Prob_S0: Probability of notChooser playing strategy 0 in its own game.
+        Outputs:
+            - game: The selected game.
+            - p0_Prob_s0: Probability of chooser playing strategy 0.
+            - p1_Prob_s0: Probability of notChooser playing strategy 0.
         '''
-
 
         # Calculating the mean utility of the games for the chooser
         chooser_gChooser_UtilityMean = chooser.game.getUtilityMean(0, chooser_gChooser_Prob_S0, notchooser_gchooser_Prob_S0, chooser.eta, chooser.model.utility_function)
         chooser_gNotchooser_UtilityMean =  notChooser.game.getUtilityMean(1, chooser_gNotChooser_Prob_S0, notchooser_gNotChooser_Prob_S0, chooser.eta, chooser.model.utility_function)
-
 
         # Probability of choosing a game is proportional to the ratio of the means
         p_gChooser = chooser_gChooser_UtilityMean / (chooser_gChooser_UtilityMean + chooser_gNotchooser_UtilityMean)
@@ -267,15 +279,16 @@ class GameAgent(Agent):
         else:
             return (notChooser.game, chooser_gNotChooser_Prob_S0, notchooser_gNotChooser_Prob_S0)
     
-    
-
-
 
     def step(self):
-        '''Advances the agent one time step in the model.'''
+        '''
+        Description: 
+            Advances the agent one time step in the model.
+        Inputs: None
+        Outputs: None
+        '''
 
         # If the node does not have neighbours, it can be skipped.
-        # Should be connected?
         if self.model.graph.degree(self.id) == 0:       
             return
 
@@ -316,7 +329,6 @@ class GameAgent(Agent):
         self.games_played += 1
         other_agent.games_played += 1
 
-        #What does this mean??
         if self.wealth < other_agent.wealth and self.game.UV == other_agent.game.UV:
             self.eta = (other_agent.eta+self.eta)/2
 
@@ -364,5 +376,3 @@ class GameAgent(Agent):
             self.model.e_g += 1
 
         self.rewire(self.alpha, self.beta, self.rewiring_p)
-
-        

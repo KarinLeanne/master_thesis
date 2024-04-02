@@ -29,7 +29,8 @@ def viz_speed_network_vs_speed_games_old(df, measure):
 
 def viz_time_series_y_varying_rewiring_p(df, values, y):
 
-    rewiring_probabilities = values[::2]
+    rewiring_probabilities = df["rewiring_p"].unique().sort()
+    print(rewiring_probabilities)
 
     for rewiring_p in rewiring_probabilities:
 

@@ -10,11 +10,14 @@ import networkx as nx
 from IPython.display import display
 from tabulate import tabulate
 from scipy.ndimage.filters import gaussian_filter
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from scipy.interpolate import interp2d
 import matplotlib.cm as cm
 import seaborn as sns
 import ast
 import json
+import seaborn as sns
+import inequalipy   
 
 
 import utils
@@ -73,6 +76,9 @@ def viz_time_series_agent_data_rationality_single(df, NH = False):
 
 def viz_time_series_agent_data_pay_off_single(df, NH = False):
     viz_time_series_agent_data_single(df, "Wealth", "Player Wealth", NH = False)
+
+def viz_time_series_agent_data_recent_wealth_single(df, NH = False):
+    viz_time_series_agent_data_single(df, "Recent Wealth", "Recent Player Wealth", NH = False)
 
 
 def viz_time_series_agent_data_multiple(df, measure, name_measure, indep_var):
@@ -188,46 +194,48 @@ def viz_wealth_distribution(df, NH = False):
         plt.close()
 
 
-def cumulative_distribution_plot(ax, data, step):
-    ax.plot(np.sort(data), np.linspace(0, 1, len(data), endpoint=False), label=f'Step {step}')
-    ax.set_title(f'Step {step}')
-    ax.set_xlabel('Player Payoff')
-    ax.set_ylabel('Density')
-
-
 def viz_cml_wealth(df, NH=False):
-    steps_plot = [*range(int(params.n_steps / 4), params.n_steps + 1, int(params.n_steps / 4))]
+    
+    time_steps = [1, 10, 30, 60, 120, 240, 480]
 
-    # Create a single figure for all CML plots
-    fig_cml, ax_cml = plt.subplots(figsize=(12, 8))
+    # Create a figure with two subplots for all CML plots
+    fig, axs = plt.subplots(1, 2, figsize=(12, 5))
 
-    # Iterate over selected steps and create cumulative distribution plots
-    for step in steps_plot:
-        subset_data = df[df['Step'] == step]
-        wealth = subset_data['Wealth']
-        
-        # Normalize wealth over total wealth
-        total_wealth = wealth.sum()
-        normalized_wealth = wealth / total_wealth
-        
-        cumulative_distribution_plot(ax_cml, normalized_wealth, step)
+    # Iterate over selected steps and create cumulative distribution plots for wealth and recent wealth
+    for ax, var in zip(axs, ["Wealth", 'Recent Wealth']):
+        for step in time_steps:
+            subset_data = df[df['Step'] == step-1]
+            wealth = subset_data[var]
 
-    # Add legend
-    ax_cml.legend()
+            # Normalize wealth over total wealth
+            total_wealth = wealth.sum()
+            normalized_wealth = wealth / total_wealth
+
+            # Plot cumulative distribution
+            ax.plot(np.sort(normalized_wealth), np.linspace(0, 1, len(normalized_wealth), endpoint=False), 
+                        label=f'Step {step}', linewidth=2)  # Adjust linewidth
+
+            ax.set_xlabel(f'Normalized {var}', fontsize=20)
+            ax.set_ylabel('Density', fontsize=20)
+            ax.tick_params(axis='both', which='major', labelsize=18)  # Increase tick size for all axes
+
+            # Add legend
+            handles, labels = ax.get_legend_handles_labels()
+            ax.legend(handles, [f'{int(label.split()[1])}' for label in labels], fontsize='large')
+
+    plt.suptitle(f"Cumulative Distribution of {var}", fontsize=22)
 
     # Adjust layout to prevent clipping of labels
     plt.tight_layout()
 
     # Save Cumulative Distribution Plot
     if NH:
-        path = utils.make_path("Figures", "GameChoice", "Wealth_CML_NH")
+        path = utils.make_path("Figures", "GameChoice", f"Wealth_CML_NH")
         plt.savefig(path)
     else:
-        path = utils.make_path("Figures", "GameChoice", "Wealth_CML")
+        path = utils.make_path("Figures", "GameChoice", f"Wealth_CML")
         plt.savefig(path)
     plt.close()
-
-
 
 def viz_corrrelation(df, NH = False):
 
@@ -283,6 +291,89 @@ def viz_UV_scatter(df):
     # Close the figure to prevent overlap
     plt.close()  
 
+
+def viz_uv(data, variable, bar_name, visualize_wealth = False):
+    '''
+    Input: 
+        data: agent level data
+    '''
+    # Define the number of steps to visualize
+    # Get evenly spaced time steps
+    last_timestep =  data['Step'].max()
+    time_steps = np.linspace(0, last_timestep, 8)
+    time_steps = time_steps.astype(int)
+
+    # Create a figure with 8 subplots
+    fig = plt.figure(figsize=(14, 8))
+    gs = fig.add_gridspec(3, 4, width_ratios=[1, 1, 1, 1], height_ratios=[1, 1, 0.05])
+
+    # Loop through each step and create a subplot
+    for idx, step in enumerate(time_steps):
+        # Filter data for the current step
+        step_data = data[data['Step'] == step]
+        
+        if visualize_wealth:
+            # Group by UV coordinates and calculate median wealth
+            grouped_data = step_data.groupby(['UV'])[variable].median().reset_index(name=variable)
+            # Extract wealth values
+            values = grouped_data[variable]
+            # Normalize median wealth
+            values = (values - values.min()) / (values.max() - values.min())
+            counts = step_data.groupby('UV').size().reset_index(name='Counts')['Counts']
+        else:
+            # Group by UV coordinates and risk aversion values and count the number of agents
+            grouped_data = step_data.groupby(['UV', variable]).size().reset_index(name='Counts')
+            # Extract risk aversion values
+            values = grouped_data[variable]
+            # Determine bubble sizes based on the number of agents
+            counts = grouped_data['Counts']
+
+        bubble_sizes = counts * 10  # Adjust scaling factor as needed
+        # Extract UV coordinates
+        U = grouped_data['UV'].apply(lambda x: x[0]).tolist()
+        V = grouped_data['UV'].apply(lambda x: x[1]).tolist()
+        
+        # Set colors 
+        colors = values
+        
+        # Determine subplot index
+        row = idx // 4  # Determine row index (0 or 1)
+        col = idx % 4   # Determine column index (0 to 3)
+        ax = fig.add_subplot(gs[row, col])
+
+        ax.scatter(U, V, s=bubble_sizes, c=colors, cmap='viridis', alpha=0.5)  # Scatter plot with bubble sizes and risk aversion or median wealth color mapping
+        ax.set_title(f'Step {step+1}', fontsize = 18)  # Set subplot title
+        ax.set_xlabel('U', fontsize = 16)  # Set x-axis label
+        ax.set_ylabel('V', fontsize = 16)  # Set y-axis label
+        ax.grid(True)  # Add grid
+        
+ 
+        for u, v in zip(U, V):
+            ax.scatter(u, v, color='grey', s=5)  # Little dot
+
+    # Add colorbar
+    cax = fig.add_subplot(gs[2, :])
+    cbar = plt.colorbar(ax.collections[0], cax=cax, orientation='horizontal')
+    if visualize_wealth:
+        cbar.set_label(f"Normalized {bar_name}", fontsize = 16)
+
+    cbar.set_label(bar_name, fontsize = 16)
+
+    plt.suptitle(f"UV-Space and {bar_name} at Different Time-Steps", fontsize = params.titlesize)
+    path = utils.make_path("Figures", "GameChoice", f"Coevolution_UV_{bar_name}")
+
+    plt.tight_layout()
+    plt.savefig(path)
+    plt.close()
+
+def viz_coevolution_UV_risk(data):
+    viz_uv(data, "Player Risk Aversion", "Risk Aversion", visualize_wealth = False)
+    
+def viz_UV_Wealth(data):
+    viz_uv(data, "Wealth", "Median Recent Wealth", visualize_wealth = True)
+
+def viz_UV_Recent_Wealth(data):
+    viz_uv(data, "Recent Wealth", "Recent Wealth", visualize_wealth = True)
 
 def viz_UV_heatmap(df_agent, df_model, NH=False, only_start = False):
 
@@ -386,7 +477,6 @@ def viz_UV_heatmap(df_agent, df_model, NH=False, only_start = False):
 def viz_measure_over_time(df, measure):
 
     #print(tabulate(df, headers = 'keys', tablefmt = 'psql'))
-    # Count the unique games at each timestep
     
     df_grouped = df.groupby(['Step', 'Round'])[measure].mean().reset_index()
 
@@ -396,15 +486,79 @@ def viz_measure_over_time(df, measure):
 
     # Plot mean and std
     # Plot mean and shaded area for std
-    plt.plot(mean_df['Step'], mean_df[measure], label='Mean Games', color='b')
-    plt.fill_between(mean_df['Step'], mean_df[measure] - std_df[measure], mean_df[measure] + std_df[measure], color='b', alpha=0.3)
-    plt.xlabel('Timestep')
-    plt.ylabel(measure)
-    plt.legend()
+    plt.plot(mean_df['Step'], mean_df[measure], color='m')
+    plt.fill_between(mean_df['Step'], mean_df[measure] - std_df[measure], mean_df[measure] + std_df[measure], color='m', alpha=0.3, )
+    plt.xlabel('Timestep', fontsize = 16)
+    plt.ylabel(measure, fontsize = 16)
+    plt.tick_params(axis='both', which='major', labelsize=14)
 
+    plt.title(f"{measure} over Time")
     path = utils.make_path("Figures", "GameChoice", f"{measure}_over_time")
     plt.savefig(path)
     plt.close()
+
+
+def viz_gini_over_time(data):
+    """
+    Plot Gini coefficient of wealth and recent wealth over time with 95% confidence interval.
+
+    Parameters:
+        data (DataFrame): DataFrame containing the data with columns Step, Round, Wealth, and Recent Wealth.
+    """
+    # Calculate Gini coefficient for wealth
+    gini_wealth = data.groupby(['Step', 'Round'])['Wealth'].apply(lambda x: inequalipy.gini(x.values)).reset_index()
+    gini_wealth.columns = ['Step', 'Round', 'Gini_Wealth']
+
+    # Calculate Gini coefficient for recent wealth
+    gini_recent_wealth = data.groupby(['Step', 'Round'])['Recent Wealth'].apply(lambda x: inequalipy.gini(x.values)).reset_index()
+    gini_recent_wealth.columns = ['Step', 'Round', 'Gini_Recent_Wealth']
+
+    # Merge Gini coefficients
+    merged_data = pd.merge(gini_wealth, gini_recent_wealth, on=['Step', 'Round'])
+
+    # Calculate mean and 95% confidence interval for each timestep
+    mean_gini_wealth = merged_data.groupby('Step')['Gini_Wealth'].mean()
+    sem_gini_wealth = merged_data.groupby('Step')['Gini_Wealth'].sem()
+    ci_gini_wealth = 1.96 * sem_gini_wealth  # 1.96 is the z-value for 95% confidence interval
+
+    mean_gini_recent_wealth = merged_data.groupby('Step')['Gini_Recent_Wealth'].mean()
+    sem_gini_recent_wealth = merged_data.groupby('Step')['Gini_Recent_Wealth'].sem()
+    ci_gini_recent_wealth = 1.96 * sem_gini_recent_wealth  # 1.96 is the z-value for 95% confidence interval
+
+    # Plotting
+    fig, axs = plt.subplots(1, 2, figsize=(12, 5))
+
+    # Calculate y-axis limits
+    y_min = min(mean_gini_wealth.min(), mean_gini_recent_wealth.min())
+    y_max = max(mean_gini_wealth.max(), mean_gini_recent_wealth.max())
+
+    # Plot Gini coefficient of wealth with 95% confidence interval
+    axs[0].plot(mean_gini_wealth.index, mean_gini_wealth, color='blue', label='Mean')
+    axs[0].fill_between(mean_gini_wealth.index, mean_gini_wealth - ci_gini_wealth, mean_gini_wealth + ci_gini_wealth, color='blue', alpha=0.3, label='95% CI')
+    axs[0].set_xlabel('Timestep', fontsize=20)
+    axs[0].set_ylabel('Gini of Wealth', fontsize=20)
+    axs[0].tick_params(axis='both', which='major', labelsize=18)
+    axs[0].legend()
+    axs[0].set_ylim(y_min, y_max)
+
+    # Plot Gini coefficient of recent wealth with 95% confidence interval
+    axs[1].plot(mean_gini_recent_wealth.index, mean_gini_recent_wealth, color='purple', label='Mean')
+    axs[1].fill_between(mean_gini_recent_wealth.index, mean_gini_recent_wealth - ci_gini_recent_wealth, mean_gini_recent_wealth + ci_gini_recent_wealth, color='purple', alpha=0.3, label='95% CI')
+    axs[1].set_xlabel('Timestep', fontsize=20)
+    axs[1].set_ylabel('Gini of Recent Wealth', fontsize=20)
+    axs[1].tick_params(axis='both', which='major', labelsize=18)
+    axs[1].legend()
+    axs[1].set_ylim(y_min, y_max)
+
+    
+
+    # Adjust layout and save plot
+    plt.suptitle("Gini Coëfficient over Time", fontsize = 22)
+    plt.tight_layout()
+    path = utils.make_path("Figures", "GameChoice", "Gini_Coefficients_over_Time")
+    plt.savefig(path)
+    plt.close()
+
 
 def viz_effect_of_rationality_on_QRE(df):
     # Extract data from DataFrame
@@ -432,5 +586,71 @@ def viz_effect_of_rationality_on_QRE(df):
     plt.close()
 
 
+def viz_effect_of_risk_and_rationality_on_QRE(df):
+    # Define your x and y variables
+    x_vars = ['lambda1', 'lambda2', 'etaA', 'etaB']
+    y_var = 'avg_qre_result'
 
+    x_names = ["Lambda A", "Lambda B", "Eta A", "Eta B"]
+    y_name = "Avg QRE Results"
+
+    # Define colors for each subsequent plot
+    colors = ['blue', 'purple', 'red', 'orange']  
+
+    # Create a figure and axis objects
+    fig, axes = plt.subplots(1, len(x_vars), figsize=(15, 5))
+
+    # Loop through each pair of x and y variables
+    for i, x_var in enumerate(x_vars):
+        # Plot scatter plot with specific x and y variables, color, and axes
+        sns.scatterplot(x=x_var, y=y_var, data=df, ax=axes[i], color=colors[i])
+        # Plot regression line on the same plot
+        sns.regplot(x=x_var, y=y_var, data=df, ax=axes[i], scatter=False, color=colors[i])
+        # Set x and y labels
+        axes[i].set_xlabel(x_names[i], fontsize=params.labelsize)
+        axes[i].set_ylabel(y_name, fontsize=params.labelsize)
+
+
+    # Set title for the entire figure
+    fig.suptitle(f'Scatter & Regression Plot of {y_name} vs Risk and Rationality Parameters', fontsize=params.titlesize)
+
+    # Adjust tick font size
+    plt.tick_params(axis='both', which='major', labelsize=params.ticksize)
+
+    # Adjust layout
+    plt.tight_layout()
+
+    # Save the plot
+    path = utils.make_path("Figures", "GameChoice", "effect_of_risk_rationality_on_QRE_regression_scatter")
+    plt.savefig(path)
+    plt.close()
+
+
+
+def analyze_wealth_distribution(data):
+    # Filter data for the last timestep
+    data = data[data['Step'] == data['Step'].max()]
     
+    # Create a figure with two subplots
+    fig, axs = plt.subplots(1, 2, figsize=(20, 8))
+
+    # Plot wealth distributions
+    sns.kdeplot(data=data['Wealth'], color='blue', fill=True, alpha=0.1, linewidth=2, bw_adjust=2, ax=axs[0])
+    axs[0].set_xlabel('Wealth', fontsize=params.labelsize)
+    axs[0].set_ylabel('Density', fontsize=params.labelsize)
+    axs[0].set_title('Wealth Distribution', fontsize=params.titlesize)
+    axs[0].tick_params(axis='both', which='major', labelsize=params.ticksize)  
+
+    # Plot recent wealth distributions
+    sns.kdeplot(data=data['Recent Wealth'], color='green', fill=True, alpha=0.1, linewidth=2, bw_adjust=2, ax=axs[1])
+    axs[1].set_xlabel('Recent Wealth', fontsize=params.labelsize)
+    axs[1].set_ylabel('Density', fontsize=params.labelsize)
+    axs[1].set_title('Recent Wealth Distribution', fontsize=params.titlesize)
+    axs[1].tick_params(axis='both', which='major', labelsize=params.ticksize)  
+
+    plt.tight_layout()
+
+    # Save the figure
+    path = utils.make_path("Figures", "GameChoice", "Wealth_Distribution")
+    plt.savefig(path)
+    plt.close()

@@ -4,15 +4,16 @@
 
 labelsize = 20
 titlesize = 22
+subtitlesize = 20
 ticksize = 16
 
 n_steps = 480             # Must be a multiple of 8
 n_agents = 300
 n_rounds = 3
 
-rewiring_p = 0.6           # Has to be between 0 and 1
-alpha = 0.5                # alpha is the homophilic parameter
-beta = 0.1                 # beta is the homophilic parameter
+rewiring_p = 0.6          # Has to be between 0 and 1
+alpha = 0.5               # alpha is the homophilic parameter
+beta = 0.1                # beta is the homophilic parameter
 
 rat = 0.1
 

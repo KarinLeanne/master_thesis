@@ -1,6 +1,7 @@
-### Experiments.py
-# Contains the different experiment that can be run with the model
-###
+'''
+ExperimentsNetwork.py
+Contains the different experiment that can be run with the model on the network dynamics
+'''
 
 import numpy as np
 import Simulate as sim
@@ -12,7 +13,9 @@ import scipy.stats as st
 import os
 import Experiments.OFAT as OFAT
 
+
 import Experiments.vizNetworks as viz
+import Experiments.StatisticsNetworks as stN
 
 params = utils.get_config()
 
@@ -150,6 +153,14 @@ def effect_of_alpha_beta_on_variance_and_clustering(rewiring_p = params.rewiring
     viz.viz_effect_variable_on_network_measures(df_beta, 'beta')
 
 def time_series_mean_network_measures():
+    '''
+    Description: 
+    Calculate and visualize time series of mean network measures over timesteps.
+    Inputs:
+        None
+    Outputs:
+        None (plots are saved as image files).
+    '''
 
     # Only obtain data if data does not already exist
     path = utils.make_path("Data", "Networks", "Time_Series_Mean_Network_Measures")
@@ -163,7 +174,20 @@ def time_series_mean_network_measures():
     # Vizualize results experiment
     viz.viz_network_measures_over_timesteps(df_measures_over_timesteps)
 
+    # Statistics
+    stN.adf_test_for_combinations(df_measures_over_timesteps)
+    stN.sliding_window_rmsd(df_measures_over_timesteps)
+    
+
 def run_default_data():
+    '''
+    Description: 
+    Run default simulation and visualization for network data.
+    Inputs:
+        None
+    Outputs:
+        None (plots are saved as image files).
+    '''
     # Only obtain data if data does not already exist
     path_agent = utils.make_path("Data", "Networks", "Default_Sim_Agent")
     path_model = utils.make_path("Data", "Networks", "Default_Sim_Model")
@@ -175,10 +199,24 @@ def run_default_data():
         df_agent.to_csv(path_agent, index=False)
         df_model.to_csv(path_model, index=False)
 
+    # Vizualize
     viz.viz_histogram_over_time(df_agent, "Games played", bins=40)
     viz.viz_Degree_Distr(df_model, "Degree Distr", bins=10)
+    viz.analyze_wealth_distribution_by_game_group(df_agent)
+
+    # Statistical analysis
+    stN.compare_distributions(df_agent, "Wealth")
+    stN.compare_distributions(df_agent, "Recent Wealth")
 
 def run_ofat_network():
+    '''
+    Description: 
+    Run One-Factor-At-a-Time (OFAT) analysis for network simulation data and visualize the results.
+    Inputs:
+        None
+    Outputs:
+        None (plots are saved as image files).
+    '''
     path_ofat_model = utils.make_path("Data", "Networks", "df_ofat_model")
     path_ofat_agent = utils.make_path("Data", "Networks", "df_ofat_agent")
 
@@ -216,16 +254,30 @@ def run_ofat_network():
         df_ofat_model.to_csv(path_ofat_model, index=False)
         df_ofat_agent.to_csv(path_ofat_agent, index=False)
 
-    # Vizualize the ofat
-    OFAT.plot_vs_independent('Networks', df_ofat_model, "Gini Coefficient")
-    OFAT.plot_vs_independent('Networks', df_ofat_agent, "Wealth")
-    OFAT.plot_vs_independent('Networks', df_ofat_agent, "Player Risk Aversion")
-    OFAT.plot_vs_independent('Networks', df_ofat_agent, "Recent Wealth")
 
-    # Vizualize the ofat - network measures
-    OFAT.plot_vs_independent('Networks', df_ofat_model, "M: Avg Clustering")
-    OFAT.plot_vs_independent('Networks', df_ofat_model, "M: Var of Degree")
-    OFAT.plot_vs_independent('Networks', df_ofat_model, "M: Avg Path Length")
+    OFAT.plot_network_measures(df_ofat_model, "rewiring_p", "Rewiring Pr", "Networks")
+    OFAT.plot_network_measures(df_ofat_model, "alpha", "alpha", "Networks")
+    OFAT.plot_network_measures(df_ofat_model, "beta", "beta", "Networks")
+    OFAT.plot_ofat_wealth_measures('Networks', df_ofat_model, "Gini Coefficient", ['alpha', 'beta'])
+    OFAT.plot_ofat_wealth_measures('Networks', df_ofat_model, "Gini Coefficient", ['rewiring_p'], ["Rewiring Pr"])
+
+
+    stN.kruskal_wallis_test(df_ofat_model, "rewiring_p", "M: Avg Clustering")
+    stN.kruskal_wallis_test(df_ofat_model, "rewiring_p", "M: Var of Degree")
+    stN.kruskal_wallis_test(df_ofat_model, "rewiring_p", "M: Avg Path Length")
+    stN.kruskal_wallis_test(df_ofat_model, "rewiring_p", "Gini Coefficient")
+
+    stN.kruskal_wallis_test(df_ofat_model, "alpha", "M: Avg Clustering")
+    stN.kruskal_wallis_test(df_ofat_model, "alpha", "M: Var of Degree")
+    stN.kruskal_wallis_test(df_ofat_model, "alpha", "M: Avg Path Length")
+    stN.kruskal_wallis_test(df_ofat_model, "alpha", "Gini Coefficient")
+
+    stN.kruskal_wallis_test(df_ofat_model, "beta", "M: Avg Clustering")
+    stN.kruskal_wallis_test(df_ofat_model, "beta", "M: Var of Degree")
+    stN.kruskal_wallis_test(df_ofat_model, "beta", "M: Avg Path Length")
+    stN.kruskal_wallis_test(df_ofat_model, "beta", "Gini Coefficient")
+
+
 
 
 

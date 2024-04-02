@@ -1,6 +1,7 @@
-### Experiments.py
-# Contains the different experiments that can be run with the models updating mechansism
-###
+'''
+Experiments.py
+Contains the different experiments that can be run with the models updating mechansism
+'''
 
 import numpy as np
 import Simulate as sim
@@ -18,7 +19,15 @@ import Experiments.vizUpdating as viz
 params = utils.get_config()
 
 def speedOfUpdatingRewiring_vs_UV():
-    rewiring_p = np.linspace(0.0, 1.0, 11)
+    '''
+    Description: 
+    Simulate and visualize the speed of updating and rewiring mechanism versus the UV parameter.
+    Inputs:
+        None
+    Outputs:
+        None (plots are saved as image files).
+    '''
+    rewiring_p = np.linspace(0.0, 1.0, 5)
 
     path = utils.make_path("Data", "UpdatingMechanism", "SpeedUVvsNetwork")
     if os.path.isfile(path):
@@ -41,9 +50,6 @@ def speedOfUpdatingRewiring_vs_UV():
     df.columns = df.columns.str.replace(' ', '_')
 
     # Vizualize
-    #viz.viz_speed_network_vs_speed_games_old(df, "Gini_Coefficient")
-    #viz.viz_speed_network_vs_speed_games_old(df, "Number_of_Unique_Games")
-    #viz.viz_speed_ratio_time_series(df, rewiring_p)
     viz.viz_time_series_y_varying_rewiring_p(df, rewiring_p, "Speed_Ratio")
     viz.viz_time_series_y_varying_rewiring_p(df, rewiring_p, "Gini_Coefficient")
     viz.viz_time_series_y_varying_rewiring_p(df, rewiring_p, "Number_of_Unique_Games")

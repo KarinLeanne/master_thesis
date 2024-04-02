@@ -1,34 +1,16 @@
-### Simulate.py
-# Runs the model for a certain number of rounds and steps using the given parameters
-###
+'''
+Simulate.py
+This file contains a function simulate that runs a simulation of a model with given parameters, 
+collecting data at both network and agent levels.
+'''
 
-import numpy as np
 import pandas as pd
 from tabulate import tabulate
-#from IPython.display import display
 
 import GamesModel as gm
 import utils
 
 params = utils.get_config()
-
-def gini_new(array):
-    """Calculate the Gini coefficient of a numpy array."""
-    # based on bottom eq: http://www.statsdirect.com/help/content/image/stat0206_wmf.gif
-    # from: http://www.statsdirect.com/help/default.htm#nonparametric_methods/gini.htm
-
-    array = array.flatten() #all values are treated equally, arrays must be 1d
-    #make array into floats
-    array = array.astype(float)
-    if np.amin(array) < 0:
-        array -= np.amin(array) #values cannot be negative
-    #array = np.sum(array, 0.0000001, dtype=np.float)
-    array += 0.0000001 #values cannot be 0
-    array = np.sort(array) #values must be sorted
-    index = np.arange(1,array.shape[0]+1) #index per array element
-    n = array.shape[0]#number of array elements
-
-    return ((np.sum((2 * index - n  - 1) * array)) / (n * np.sum(array))) 
 
 def simulate(N = params.n_agents, 
              rewiring_p = params.rewiring_p, 
@@ -104,20 +86,12 @@ def simulate(N = params.n_agents,
     # Subtract 1 from each value in the "Step" column
     agent_data['Step'] = agent_data['Step'] - 1
 
-    #agent_data['UV'] = agent_data['UV'].apply(ast.literal_eval)
-
-    #print(tabulate(agent_data, headers = 'keys', tablefmt = 'psql'))
-    
     # For network data, reset the index and rename the index column to "step"
     model_data.reset_index(inplace=True)
     model_data.rename(columns={"index": "Step"}, inplace=True)
-    #model_data['Unique Games'] = model_data['Unique Games'].apply(lambda x: eval(x))
-    #print(model_data["Unique Games"][0])
-    #print(tabulate(model_data, headers = 'keys', tablefmt = 'psql'))
+
 
 
     
 
     return model_data, agent_data
-
-
