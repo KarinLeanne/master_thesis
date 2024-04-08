@@ -12,7 +12,7 @@ from itertools import count
 
 class Game:
     _ids = count(1)
-    def __init__(self, UV = (3, 5)):
+    def __init__(self, UV = (3, 5), normalize_games = True):
         
         '''Description: If no payoff matrix is given, the prisoners dilemma is chosen.
         Can also create a game from the payoffs of two players.
@@ -22,6 +22,7 @@ class Game:
         self.UV = UV
         self.play_count = 0
         self.total_payoff = 0
+        self.normalize = normalize_games
         
     def getPayoffMatrix(self):
         '''
@@ -31,8 +32,11 @@ class Game:
         payoff_matrix = [[(1, 1), (self.UV[0], self.UV[1])], [(self.UV[1], self.UV[0]), (0,0)]]
 
         # Normalize the payoff matrix
-        norm_factor = 1 + self.UV[0] + self.UV[1]
-        return [[element / norm_factor for element in row] for row in payoff_matrix]
+        if self.normalize:
+            norm_factor = 1 + self.UV[0] + self.UV[1]
+            return [[element / norm_factor for element in row] for row in payoff_matrix]
+        else:
+            return payoff_matrix
     
     def playGame(self, choiceP0, choiceP1):
         '''

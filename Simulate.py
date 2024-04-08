@@ -26,7 +26,8 @@ def simulate(N = params.n_agents,
              alwaysSafe = False, 
              UV=(True,None,None,False), 
              risk_distribution = "uniform", 
-             utility_function = "isoelastic"):
+             utility_function = "isoelastic",
+             normalizeGames =  True):
     '''
     Description: Run the simulation for a certain number of rounds and steps using the given parameters
     Inputs:
@@ -61,7 +62,8 @@ def simulate(N = params.n_agents,
                  alwaysOwn = alwaysOwn, 
                  UV = (True, None, None, False), 
                  risk_distribution = risk_distribution, 
-                 utility_function = utility_function)
+                 utility_function = utility_function,
+                 normalize_games = normalizeGames)
         # Step through the simulation.
         for _ in range(steps):
             model.step()

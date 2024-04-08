@@ -1,3 +1,8 @@
+'''
+StatisticsNetworks.py
+Contains the code for the statistical tests of the network chapter
+'''
+
 from scipy.stats import f_oneway, kruskal
 import pandas as pd
 from statsmodels.tsa.stattools import adfuller

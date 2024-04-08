@@ -42,9 +42,10 @@ def speedOfUpdatingRewiring_vs_UV():
 
             # Add partial data to the dataframe
             df = pd.concat([df_network, df])
-        df["Number of Unique Games"] = df['Unique Games'].apply(lambda x: len(x))
-        df["Speed_Ratio"] = df["e_g"] / df["e_n"]
-        df.to_csv(path, index=False)
+            df.to_csv(path, index=False)
+    
+    df["Number of Unique Games"] = df['Unique Games'].apply(lambda x: len(x))
+    df["Speed_Ratio"] = df["e_p"] / df["e_n"]
 
     # Replace spaces with underscores in column names
     df.columns = df.columns.str.replace(' ', '_')

@@ -42,7 +42,6 @@ def mean_measures_per_timestep(rewiring_p, alpha, beta, measures_of_interest = [
         # Add partial data to the network that needsa to contain the full data
         df_model_full = pd.concat([df_model_full, df_model_partial])
 
-    #print(tabulate(df_model_full, headers = 'keys', tablefmt = 'psql'))
     df_data_mean_std = df_model_full.groupby(["Step", "Network"])[measures_of_interest].mean().reset_index()
     
     measures = list(df_data_mean_std.loc[:, df_data_mean_std.columns.str.contains('M:')].columns)
@@ -72,8 +71,6 @@ def effect_of_rewiring_p_on_variance_and_clustering(alpha = params.alpha, beta =
             df['rewiring_p'] = rewiring_p
             # Add partial data to the network that needs to contain the full data
             df_rewiring_p = pd.concat([df_rewiring_p, df])
-
-        #print(tabulate(df_rewiring_p, headers = 'keys', tablefmt = 'psql'))
 
         df_rewiring_p.to_csv(path, index=False)
 

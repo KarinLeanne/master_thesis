@@ -17,53 +17,56 @@ import Experiments.StatisticsGameChoice as sgc
 
 params = utils.get_config()
 
-def baselineExperiments():
+def baselineExperiments(NH = False, normalizeGames = True):
     '''
     Description: 
     Run baseline experiments and visualize the results.
     Inputs:
-        None
+        NH = Whether only non-harmonious games are included
+        normalizedGame = If the games are normalized
     Outputs:
         None (plots are saved as image files).
     '''
-    path_agent = utils.make_path("Data", "GameChoice", "Agent_Baseline")
-    path_model = utils.make_path("Data", "GameChoice", "Model_Baseline")
+    path_agent = utils.make_path("Data", "GameChoice", f"Agent_Baseline_NH_{NH}_Normalized_{normalizeGames}")
+    path_model = utils.make_path("Data", "GameChoice", f"Model_Baseline_NH_{NH}_Normalized_{normalizeGames}")
+
     if os.path.isfile(path_agent) and os.path.isfile(path_model):
         df_agent = pd.read_csv(path_agent)
         df_agent['UV'] = df_agent['UV'].apply(ast.literal_eval)
         df_model = pd.read_csv(path_model)
     else:
-        df_model, df_agent = sim.simulate(params.n_agents, params.rewiring_p, params.alpha, params.beta, network = params.default_network, rounds = params.n_rounds, steps = params.n_steps, netRat = 0.1, partScaleFree = 1, alwaysOwn = False, UV=(True,None,None,False))
+        df_model, df_agent = sim.simulate(params.n_agents, params.rewiring_p, params.alpha, params.beta, network = params.default_network, rounds = params.n_rounds, steps = params.n_steps, netRat = 0.1, partScaleFree = 1, alwaysOwn = False, UV=(True,None,None,NH), normalizeGames = normalizeGames)
         df_agent.to_csv(path_agent, index=False)
         df_model.to_csv(path_model, index=False)
-
-    viz.viz_coevolution_UV_risk(df_agent)
-    viz.viz_UV_Wealth(df_agent)
-    viz.viz_UV_Recent_Wealth(df_agent)
-
-    viz.viz_cml_wealth(df_agent)
-    viz.viz_cml_wealth(df_agent)
-
-    viz.viz_gini_over_time(df_agent)
-
-
-    viz.viz_UV_heatmap(df_agent, df_model)
-    viz.viz_UV_heatmap(df_agent[df_agent['Step'] < 40], df_model, only_start=True)
-    viz.viz_time_series_agent_data_rationality_single(df_agent)
-    viz.viz_time_series_agent_data_pay_off_single(df_agent)
-    viz.viz_time_series_agent_data_recent_wealth_single(df_agent)
-    viz.viz_wealth_distribution(df_agent)
-    viz.viz_cml_wealth(df_agent)
-    viz.viz_corrrelation(df_agent)
-
-    sgc.coevolution_risk_UV(df_agent, "Player Risk Aversion")
-    sgc.coevolution_risk_UV(df_agent, "Wealth")
-    sgc.coevolution_risk_UV(df_agent, "Recent Wealth")
-    sgc.distributions_statistics(df_agent)
+    
+    #viz.analyze_game_switches(df_agent)
+    
+    viz.viz_coevolution_UV_risk(df_agent, NH = NH, normalizeGames = normalizeGames)
+    viz.viz_UV_Mean_Recent_Wealth(df_agent, NH = NH, normalizeGames = normalizeGames)
+    viz.viz_UV_Mean_Wealth(df_agent, NH = NH, normalizeGames = normalizeGames)
+    viz.viz_UV_Median_Recent_Wealth(df_agent, NH = NH, normalizeGames = normalizeGames)
+    viz.viz_UV_Median_Wealth(df_agent, normalizeGames = normalizeGames)
 
 
+    viz.viz_cml_wealth(df_agent, NH = NH, normalizeGames = normalizeGames)
+
+    viz.viz_gini_over_time(df_agent, NH = NH, normalizeGames = normalizeGames)
 
 
+    viz.viz_UV_heatmap(df_agent, df_model, NH = NH, normalizeGames = normalizeGames)
+    viz.viz_UV_heatmap(df_agent[df_agent['Step'] < 40], df_model, only_start=True, NH = NH, normalizeGames = normalizeGames)
+    viz.viz_time_series_agent_data_rationality_single(df_agent, NH = NH, normalizeGames = normalizeGames)
+    viz.viz_time_series_agent_data_pay_off_single(df_agent, NH = NH, normalizeGames = normalizeGames)
+    viz.viz_time_series_agent_data_recent_wealth_single(df_agent, NH = NH, normalizeGames = normalizeGames)
+    viz.viz_wealth_distribution(df_agent, NH = NH, normalizeGames = normalizeGames)
+    viz.viz_cml_wealth(df_agent, NH = NH, normalizeGames = normalizeGames)
+    viz.viz_corrrelation(df_agent, NH = NH, normalizeGames = normalizeGames)
+
+    sgc.coevolution_risk_UV(df_agent, "Player Risk Aversion", NH = NH, normalizeGames = normalizeGames)
+    sgc.coevolution_risk_UV(df_agent, "Wealth", NH = NH, normalizeGames = normalizeGames)
+    sgc.coevolution_risk_UV(df_agent, "Recent Wealth", NH = NH, normalizeGames = normalizeGames)
+    sgc.distributions_statistics(df_agent, NH = NH, normalizeGames = normalizeGames)
+    
 def baselineExperiments_NH():
     '''
     Description: 
@@ -73,26 +76,18 @@ def baselineExperiments_NH():
     Outputs:
         None (plots are saved as image files).
     '''
-    path_agent = utils.make_path("Data", "GameChoice", "Agent_Baseline_NH")
-    path_model = utils.make_path("Data", "GameChoice", "Model_Baseline_NH")
-    if os.path.isfile(path_agent) and os.path.isfile(path_model):
-        df_agent = pd.read_csv(path_agent)
-        df_agent['UV'] = df_agent['UV'].apply(ast.literal_eval)
-        df_model = pd.read_csv(path_model)
-    else:
-        df_model, df_agent = sim.simulate(params.n_agents, params.rewiring_p, params.alpha, params.beta, network = params.default_network, rounds = params.n_rounds, steps = params.n_steps, netRat = 0.1, partScaleFree = 1, alwaysOwn = False, UV=(True,None,None,True))
-        df_agent.to_csv(path_agent, index = False)
-        df_model.to_csv(path_model, index=False)
+    baselineExperiments(NH=True)
 
-    viz.viz_UV_heatmap(df_agent, df_model)
-    viz.viz_UV_heatmap(df_agent[df_agent['Step'] < 40], df_model, True, True)
-    viz.viz_time_series_agent_data_rationality_single(df_agent, True)
-    viz.viz_time_series_agent_data_pay_off_single(df_agent, True)
-    viz.viz_time_series_agent_data_recent_wealth_single(df_agent, True)
-    viz.viz_wealth_distribution(df_agent, True)
-    viz.viz_cml_wealth(df_agent, True)
-    viz.viz_corrrelation(df_agent, True)
-
+def baselineExperiment_without_normalization():
+    '''
+    Description: 
+    Run baseline experiments without normalization of games and visualize the results.
+    Inputs:
+        None
+    Outputs:
+        None (plots are saved as image files).
+    '''
+    baselineExperiments(normalizeGames=False)
 
 def effect_of_risk_distribution_on_wealth():
     '''
@@ -148,7 +143,6 @@ def effect_of_utility_function_on_wealth():
     viz.viz_time_series_agent_data_rationality_for_util(df_agent)
     viz.viz_time_series_agent_data_pay_off_for_util(df_agent)     
 
-
 def calculate_nash_equilibrium(payoff_matrix):
     '''
     Description: 
@@ -202,6 +196,7 @@ def effect_of_risk_and_rationality_on_QRE():
 
                             # Append the results for analysis
                             trial_results.append(qre_result[0])  # Assuming you're interested in the QRE result for player 1
+                            
 
                         # Compute average QRE result for the current parameter combination
                         avg_qre_result = np.mean(trial_results)
@@ -220,31 +215,6 @@ def effect_of_risk_and_rationality_on_QRE():
         df.to_csv(path, index=False)
     
     viz.viz_effect_of_risk_and_rationality_on_QRE(df)
-
-
-
-def game_wealth_rationality_correlation():
-    '''
-    Description: 
-    Analyze the correlation between game wealth and player risk aversion and visualize the results.
-    Inputs:
-        None
-    Outputs:
-        None (plots are saved as image files).
-    '''
-    path = utils.make_path("Data", "GameChoice", "Game_Wealth_Risk_Correlation")
-    if os.path.isfile(path):
-        df_agent = pd.read_csv(path)
-    else:
-        df_agent = pd.DataFrame()
-        _ , df_agent = sim.simulate(params.n_agents, params.rewiring_p, params.alpha, params.beta, network =params.default_network, rounds = params.n_rounds, steps = params.n_steps)
-
-        df_agent.to_csv(path, index=False)
-
-    
-    viz.vizualize_game_correlation(df_agent, 'Player Risk Aversion')
-    viz.vizualize_game_correlation(df_agent, 'Wealth')
-
 
 def track_num_games_in_pop():
     '''
@@ -329,6 +299,42 @@ def run_ofat_GC():
         # Save the results to respective paths
         df_ofat_model.to_csv(path_ofat_model, index=False)
         df_ofat_agent.to_csv(path_ofat_agent, index=False)
+
+
+def plot_uv_changes_over_time(data):
+    """
+    Plot the number of unique UV changes over time.
+
+    Parameters:
+    - data (DataFrame): DataFrame containing the data with columns 'Step' representing timestep
+                        and 'UV' representing the game.
+
+    Returns:
+    - None (displays the plot)
+    """
+    # Group the data by timestep (Step)
+    grouped_data = data.groupby('Step')
+
+    # Initialize lists to store timestep and UV changes
+    timesteps = []
+    uv_changes = []
+
+    # Iterate over each timestep
+    for timestep, timestep_data in grouped_data:
+        # Append timestep to the list
+        timesteps.append(timestep)
+        # Count the unique UV values for the timestep and append to the list
+        unique_uvs = timestep_data['UV'].nunique()
+        uv_changes.append(unique_uvs)
+
+    # Plot the UV changes over time
+    plt.figure(figsize=(10, 6))
+    plt.plot(timesteps, uv_changes, marker='o', linestyle='-')
+    plt.title('Number of UV Changes Over Time')
+    plt.xlabel('Timestep')
+    plt.ylabel('Number of UV Changes')
+    plt.grid(True)
+    plt.show()
 
 
 

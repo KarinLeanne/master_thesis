@@ -67,10 +67,10 @@ class GameAgent(Agent):
 
         # Each agent has a game
         if UV[0]:
-            self.game = Game.Game((uvpay[0], uvpay[1]))
+            self.game = Game.Game((uvpay[0], uvpay[1]), self.model.normalize_games)
             self.model.games.append(self.game)
         if not UV[0]:
-            self.game = Game.Game((UV[1],UV[2]))
+            self.game = Game.Game((UV[1],UV[2]), self.model.normalize_games)
             self.model.games.append(self.game)
     
     def weighted_sum(self, pay_off_list):
@@ -328,6 +328,7 @@ class GameAgent(Agent):
         # Add that they played one game
         self.games_played += 1
         other_agent.games_played += 1
+        self.model.e_p += 1
 
         if self.wealth < other_agent.wealth and self.game.UV == other_agent.game.UV:
             self.eta = (other_agent.eta+self.eta)/2
@@ -346,7 +347,6 @@ class GameAgent(Agent):
 
 
         if (ownGameMean < ownPayoff) and (self.wealth < other_agent.wealth):
-            self.model.e_g += 1
             self.game = other_agent.game
             self.eta = other_agent.eta
             adapted = True
@@ -364,12 +364,12 @@ class GameAgent(Agent):
                 while True:
                     uvpay = np.random.RandomState().rand(2) * 2
                     if uvpay[0] > 1 and uvpay[1] > 1:
-                        self.game = Game.Game((uvpay[0], uvpay[1]))
+                        self.game = Game.Game((uvpay[0], uvpay[1]), self.model.normalize_games)
                         self.model.games.append(self.game)
                         break
             else:
                 uvpay = np.random.RandomState().rand(2) * 2
-                self.game = Game.Game((uvpay[0], uvpay[1]))
+                self.game = Game.Game((uvpay[0], uvpay[1]), self.model.normalize_games)
                 self.model.games.append(self.game)
 
         if (mutated or adapted):

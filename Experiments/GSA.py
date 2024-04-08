@@ -1,3 +1,8 @@
+'''
+GSA.py
+Contains code to perform and plot the global sensitivity analysis
+'''
+
 from SALib.sample import saltelli
 from SALib.analyze import sobol
 import numpy as np
@@ -10,6 +15,7 @@ from warnings import filterwarnings
 import seaborn as sns
 import os
 from tabulate import tabulate
+import scienceplots
 
 import utils
 from Simulate import simulate
@@ -17,12 +23,13 @@ from GamesModel import GamesModel
 
 params = utils.get_config()
 filterwarnings("ignore")
+plt.style.use(['science', 'ieee'])
+
 
 def plot_index(s, params, i, title=''):
     """
     Description: creates a plot for Sobol sensitivity analysis that shows the contributions
                  of each parameter to the global sensitivity.
-
     Inputs:
         - s: dictionary of dictionaries that hold
              the values for a set of parameters
@@ -46,18 +53,22 @@ def plot_index(s, params, i, title=''):
         errors = s['S' + i + '_conf']
 
     l = len(indices)
+    plt.yticks(range(l), params, fontsize = 20)
 
-    plt.title(title, fontsize=16)
+    
     plt.ylim([-0.2, len(indices) - 1 + 0.2])
-    plt.yticks(range(l), params, fontsize=12)
-    plt.errorbar(indices, range(l), xerr=errors, linestyle='None', marker='o', markersize=8, capsize=5)
-    plt.axvline(0, c='k', linestyle='--')
+    plt.errorbar(indices, range(l), xerr=errors, linestyle='None', marker='o', markersize=14, capsize=10, color = "purple")
+    plt.axvline(0, c='k', linestyle='--', color = "purple")
 
-    plt.xlabel('Sensitivity Index', fontsize=14)
-    plt.ylabel('Parameters', fontsize=14)
+    plt.xlabel('Sensitivity Index', fontsize=24)
+    plt.ylabel('Parameters', fontsize=24)
+    
+    plt.tick_params(axis='x', which='major', labelsize=18)  
+    plt.title(title, fontsize=30)
 
     # Safe Figure
     path = utils.make_path("Figures", "Sobol", f"{title}")
+    plt.tight_layout()
     plt.savefig(path)
     plt.close()
 

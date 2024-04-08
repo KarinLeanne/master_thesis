@@ -13,6 +13,9 @@ from warnings import filterwarnings
 from GamesModel import GamesModel
 import utils
 from scipy.stats import sem
+import scienceplots
+
+plt.style.use(['science', 'ieee'])
 
 def calculate_ci(data):
     '''
@@ -65,17 +68,14 @@ def plot_ofat_wealth_measures(chapter, data, dependent_var, selected_independent
 
             # Fill the confidence interval
             ax.fill_between(grouped_data['IndependentValue'], np.array(mean) - np.array(ci),
-                            np.array(mean) + np.array(ci), alpha=0.2, label='CI', color='purple')
+                            np.array(mean) + np.array(ci), alpha=0.2, label='95\% CI', color='purple')
 
             # Set subplot title and labels
             ax.set_title(f'{independent_var.capitalize()} vs {dependent_var}', fontsize=18)
-            ax.set_xlabel(x_labels[i] if x_labels else f'{independent_var.capitalize()}', fontsize=14)
-            ax.set_ylabel(f'{dependent_var.capitalize()}', fontsize=14)  # Set ylabel for each subplot
+            ax.set_xlabel(x_labels[i] if x_labels else f'{independent_var.capitalize()}', fontsize=16)
+            ax.set_ylabel(f'{dependent_var.capitalize()}', fontsize=16)  # Set ylabel for each subplot
             ax.tick_params(axis='both', which='major', labelsize=14)
-
-            # Display legend in the last subplot
-            if i == len(selected_independent_vars) - 1:
-                ax.legend(fontsize=14)
+            ax.legend(fontsize=16)
 
     else:  # Single subplot case
         # Filter data for the current independent variable
@@ -93,17 +93,17 @@ def plot_ofat_wealth_measures(chapter, data, dependent_var, selected_independent
 
         # Fill the confidence interval
         axes.fill_between(grouped_data['IndependentValue'], np.array(mean) - np.array(ci),
-                         np.array(mean) + np.array(ci), alpha=0.2, label='CI', color='purple')
+                         np.array(mean) + np.array(ci), alpha=0.2, label='95\% CI', color='purple')
 
         # Set subplot title and labels
         dependent_var = dependent_var.replace("M: ", "")
         axes.set_title(f'{independent_var.capitalize()} vs {dependent_var}', fontsize=18)
-        axes.set_xlabel(x_labels[0] if x_labels else f'{independent_var.capitalize()}', fontsize=14)
-        axes.set_ylabel(f'{dependent_var.capitalize()}', fontsize=14)  # Set ylabel for the single subplot
+        axes.set_xlabel(x_labels[0] if x_labels else f'{independent_var.capitalize()}', fontsize=16)
+        axes.set_ylabel(f'{dependent_var.capitalize()}', fontsize=16)  # Set ylabel for the single subplot
         axes.tick_params(axis='both', which='major', labelsize=14)
 
         # Display legend
-        axes.legend(fontsize=14)
+        axes.legend(fontsize=16)
 
     # Adjust layout for better spacing
     plt.tight_layout()
@@ -152,10 +152,10 @@ def plot_network_measures(full_model_data, independent_variable, x_label, chapte
                          np.array(mean) + np.array(ci), alpha=0.2, label='CI', color = "m")
         measure = measure.replace("M: ", "")
         axes[i].set_title(f'{measure} vs {x_label}', fontsize=18)
-        axes[i].set_xlabel(f'{x_label}', fontsize=14)
-        axes[i].set_ylabel(measure.split(':')[-1].strip(), fontsize=14)
+        axes[i].set_xlabel(f'{x_label}', fontsize=16)
+        axes[i].set_ylabel(measure.split(':')[-1].strip(), fontsize=16)
         axes[i].tick_params(axis='both', which='major', labelsize=14)  
-        axes[i].legend(['Mean', '95% CI'], fontsize=16)
+        axes[i].legend(['Mean', '95\% CI'], fontsize=16)
 
 
     # Show the plot

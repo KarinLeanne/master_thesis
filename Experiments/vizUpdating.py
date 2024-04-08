@@ -1,21 +1,39 @@
+'''
+vizUpdating.py
+This file contains the code to vizualize some plots regarding the updating mechanism
+'''
+
+
 # External
 import matplotlib.pyplot as plt
+import scienceplots
 
 # Internal
 import utils
 
 params = utils.get_config()
 
+# Set the 'science' and 'ieee' styles for all plots
+plt.style.use(['science', 'ieee'])
+
 
 def viz_speed_network_vs_speed_games_old(df, measure):
+    '''
+    Description: Visualizes the relationship between speed ratio and a given measure with a scatter plot.
+    Inputs: df - DataFrame, containing the data,
+            measure - str, the measure to plot against the speed ratio.
+    Outputs: None
+    '''
     plt.figure(figsize=(10, 6))
 
     # Create a scatter plot with colorbar
     scatter = plt.scatter(x=df['Speed_Ratio'], y=df[measure], c=df['rewiring_p'], cmap='viridis', s=100)
     
-    plt.title(f'Scatter Plot of {measure}'.replace("_", " ") + " vs Speed Ratio with Colorbar'")
-    plt.xlabel('Speed Ratio (e_g / e_n)')
+    
+    plt.title(f'Scatter Plot of {measure}'.replace("_", " ") + " vs Speed Ratio")
+    plt.xlabel('Speed Ratio (games played / networks changed)')
     plt.ylabel(f"{measure}".replace("_", " "))
+    plt.tick_params(axis='both', which='major')
     
     # Add colorbar
     cbar = plt.colorbar(scatter)
@@ -28,32 +46,42 @@ def viz_speed_network_vs_speed_games_old(df, measure):
 
 
 def viz_time_series_y_varying_rewiring_p(df, values, y):
-
-    rewiring_probabilities = df["rewiring_p"].unique().sort()
-    print(rewiring_probabilities)
+    '''
+    Description: Visualizes time series data for a specific variable with varying rewiring probabilities.
+    Inputs: df - DataFrame, containing the data,
+            values - array, values to plot,
+            y - str, the variable to plot.
+    Outputs: None
+    '''
+    rewiring_probabilities = df["rewiring_p"].unique()
 
     for rewiring_p in rewiring_probabilities:
+        if not (rewiring_p == 0):
 
-        subset = df[df['rewiring_p'] == rewiring_p]
-        df_grouped = subset.groupby(['Step', 'Round'])[y].mean().reset_index()
+            subset = df[df['rewiring_p'] == rewiring_p]
+            df_grouped = subset.groupby(['Step', 'Round'])[y].mean().reset_index()
 
-        # Calculate mean and SEM over simulations
-        mean_df = df_grouped.groupby('Step')[y].mean().reset_index()
-        sem_df = df_grouped.groupby('Step')[y].sem().reset_index()
+            # Calculate mean and SEM over simulations
+            
+            mean_df = df_grouped.groupby('Step')[y].mean().reset_index()
+            sem_df = df_grouped.groupby('Step')[y].sem().reset_index()
 
-        # Calculate upper and lower bounds of CI
-        upper_bound = mean_df[y] + 1.96 * sem_df[y]
-        lower_bound = mean_df[y] - 1.96 * sem_df[y]
+            # Calculate upper and lower bounds of CI
+            upper_bound = mean_df[y] + 1.96 * sem_df[y]
+            lower_bound = mean_df[y] - 1.96 * sem_df[y]
 
-        # Plot the mean speed ratio and fill between the bounds
-        plt.plot(mean_df['Step'], mean_df[y], label=f'rewiring_p={rewiring_p}')
-        plt.fill_between(mean_df['Step'], lower_bound, upper_bound, alpha=0.3)
+            # Plot the mean speed ratio and fill between the bounds
+            plt.plot(mean_df['Step'], mean_df[y], label=f'rewiring_p={rewiring_p}')
+            plt.fill_between(mean_df['Step'], lower_bound, upper_bound, alpha=0.3)
 
+    
     # Customize the plot
+    y = y.replace('_', ' ')
     plt.xlabel('Step')
     plt.ylabel(y)
-    plt.title(f'{y} over Time for Different Rewiring Probabilities')
-    plt.legend()
+    plt.tick_params(axis='both', which='major')
+    plt.title(f'{y} over Time for Different Rewiring Prob')
+    plt.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left')
     plt.grid(True)
 
     # Save Plots

@@ -53,7 +53,8 @@ class GamesModel(Model):
                  alwaysOwn = False, 
                  UV = (True, None, None, False), 
                  risk_distribution = "uniform", 
-                 utility_function = "isoelastic"):
+                 utility_function = "isoelastic",
+                 normalize_games = True):
         '''
         Description: Initializes the model with given parameters.
         Inputs:
@@ -78,12 +79,16 @@ class GamesModel(Model):
         self.NH = UV[3]
         self.running = True
         self.games = [] 
+        self.normalize_games = normalize_games
 
         # The amount of times the games are updated (i.e the UV space) 
         self.e_g = 0
 
         # The amount of times the network is updated
         self.e_n = 0
+
+        # The amount of games playes
+        self.e_p = 0
         
         # Generate the network.
         if network[0] == 'RR':
@@ -119,7 +124,7 @@ class GamesModel(Model):
         # Collect model timestep data.
         self.datacollector = DataCollector(
             model_reporters={"M: Mean Degree" : self.get_mean_degree, "M: Var of Degree" : self.get_variance_degree, "M: Avg Clustering" : self.get_clustering_coef, "M: Avg Path Length" : self.get_average_path_length, "Gini Coefficient": self.get_gini_coef,
-                             "Unique Games": self.get_unique_games, "Degree Distr": self.get_degree_distribution, "e_n": "e_n", "e_g": "e_g", "Game data": self.get_game_data},
+                             "Unique Games": self.get_unique_games, "Degree Distr": self.get_degree_distribution, "e_n": "e_n", "e_g": "e_g", "e_p":"e_p", "Game data": self.get_game_data},
             agent_reporters={"Wealth": "wealth","Player Risk Aversion": "eta", "UV": "game.UV", "Games played": "games_played", "Recent Wealth": "recent_wealth"}
         )
 

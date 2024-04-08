@@ -1,5 +1,4 @@
 
-
 from chart_studio import plotly as py 
 import plotly.figure_factory as ff
 import numpy as np
@@ -18,15 +17,19 @@ import ast
 import json
 import seaborn as sns
 import inequalipy   
+import scienceplots
 
 
 import utils
 
 params = utils.get_config()
 
+# Set the 'science' and 'ieee' styles for all plots
+plt.style.use(['science', 'ieee'])
 
-def viz_time_series_agent_data_single(df, measure, name_measure, NH = False):
-    # Calculate mean and standard deviation of risk aversion  per step
+
+def viz_time_series_agent_data_single(df, measure, name_measure, NH = False,  normalizeGames = True):
+    # Calculate mean and standard deviation of measure per step
     grouped_data = df.groupby('Step')[measure].agg(['mean', 'std'])
 
     # Create a new subplot for the variance
@@ -58,27 +61,23 @@ def viz_time_series_agent_data_single(df, measure, name_measure, NH = False):
     plt.tight_layout()
 
     # Save plot
-    path = utils.make_path("Figures", "GameChoice", "Influence_Rewiring_p_On_Network")
-    if NH:
-        path = utils.make_path("Figures", "GameChoice", f"{name_measure}_NH")
-        plt.savefig(path)
-    else:
-        path = utils.make_path("Figures", "GameChoice", f"{name_measure}")
-        plt.savefig(path)
+
+    path = utils.make_path("Figures", "GameChoice", f"{name_measure}_NH_{NH}_Normalized_{normalizeGames}")
+    plt.savefig(path)
 
     # Close the figure to prevent overlap
     plt.close() 
 
 
-def viz_time_series_agent_data_rationality_single(df, NH = False):
-    viz_time_series_agent_data_single(df, "Player Risk Aversion", "Player Risk Aversion", NH = False)
+def viz_time_series_agent_data_rationality_single(df, NH = False, normalizeGames = True):
+    viz_time_series_agent_data_single(df, "Player Risk Aversion", "Player Risk Aversion", NH, normalizeGames)
 
 
-def viz_time_series_agent_data_pay_off_single(df, NH = False):
-    viz_time_series_agent_data_single(df, "Wealth", "Player Wealth", NH = False)
+def viz_time_series_agent_data_pay_off_single(df, NH = False,  normalizeGames = True):
+    viz_time_series_agent_data_single(df, "Wealth", "Player Wealth", NH, normalizeGames)
 
-def viz_time_series_agent_data_recent_wealth_single(df, NH = False):
-    viz_time_series_agent_data_single(df, "Recent Wealth", "Recent Player Wealth", NH = False)
+def viz_time_series_agent_data_recent_wealth_single(df, NH = False,  normalizeGames = True):
+    viz_time_series_agent_data_single(df, "Recent Wealth", "Recent Player Wealth", NH, normalizeGames)
 
 
 def viz_time_series_agent_data_multiple(df, measure, name_measure, indep_var):
@@ -137,7 +136,7 @@ def viz_time_series_agent_data_pay_off_for_util(df):
 
 
 
-def viz_wealth_distribution(df, NH = False):
+def viz_wealth_distribution(df, NH = False, normalizeGames = True):
 
     stepsPlot = [*range(int(params.n_steps / 4) - 1, params.n_steps + 1, int(params.n_steps / 4))]
 
@@ -174,29 +173,21 @@ def viz_wealth_distribution(df, NH = False):
     # Adjust layout to prevent clipping of labels
     plt.tight_layout()
 
-    if NH:
-        # Save Plots
-        path = utils.make_path("Figures", "GameChoice", "Wealth_Violin_NH")
-        plt.savefig(path)
-        plt.close()
+    # Save Plots
+    path = utils.make_path("Figures", "GameChoice", f"Wealth_Violin_NH_{NH}_Normalized_{normalizeGames}")
+    fig_violin.savefig(path)
+    plt.close()
 
-        path = utils.make_path("Figures", "GameChoice", "Wealth_KDE_NH")
-        plt.savefig(path)
-        plt.close()
-    else:
-        # Save Plots
-        path = utils.make_path("Figures", "GameChoice", "Wealth_Violin")
-        plt.savefig(path)
-        plt.close()
-
-        path = utils.make_path("Figures", "GameChoice", "Wealth_KDE")
-        plt.savefig(path)
-        plt.close()
+    path = utils.make_path("Figures", "GameChoice", f"Wealth_KDE_NH_{NH}_Normalized_{normalizeGames}")
+    fig_kde.savefig(path)
+    plt.close()
 
 
-def viz_cml_wealth(df, NH=False):
+def viz_cml_wealth(df, NH=False, normalizeGames = True):
     
-    time_steps = [1, 10, 30, 60, 120, 240, 480]
+    time_steps = [1, 10, 100, 450]
+    x_min = 0
+    x_max = 0.003
 
     # Create a figure with two subplots for all CML plots
     fig, axs = plt.subplots(1, 2, figsize=(12, 5))
@@ -218,6 +209,7 @@ def viz_cml_wealth(df, NH=False):
             ax.set_xlabel(f'Normalized {var}', fontsize=20)
             ax.set_ylabel('Density', fontsize=20)
             ax.tick_params(axis='both', which='major', labelsize=18)  # Increase tick size for all axes
+            ax.set_xlim(x_min, x_max)
 
             # Add legend
             handles, labels = ax.get_legend_handles_labels()
@@ -229,15 +221,11 @@ def viz_cml_wealth(df, NH=False):
     plt.tight_layout()
 
     # Save Cumulative Distribution Plot
-    if NH:
-        path = utils.make_path("Figures", "GameChoice", f"Wealth_CML_NH")
-        plt.savefig(path)
-    else:
-        path = utils.make_path("Figures", "GameChoice", f"Wealth_CML")
-        plt.savefig(path)
+    path = utils.make_path("Figures", "GameChoice", f"Wealth_CML_NH_{NH}_Normalized_{normalizeGames}")
+    plt.savefig(path)
     plt.close()
 
-def viz_corrrelation(df, NH = False):
+def viz_corrrelation(df, NH = False, normalizeGames = True):
 
     stepsPlot = [*range(int(params.n_steps / 4) - 1, params.n_steps + 1, int(params.n_steps / 4))]
 
@@ -256,13 +244,8 @@ def viz_corrrelation(df, NH = False):
 
     # Adjust layout to prevent clipping of labels
     plt.tight_layout()
-
-    if NH:
-        path = utils.make_path("Figures", "GameChoice", "Correlation_Wealth_Risk_aversion_NH")
-        plt.savefig(path)
-    else:
-        path = utils.make_path("Figures", "GameChoice", "Correlation_Wealth_Risk_aversion")
-        plt.savefig(path)
+    path = utils.make_path("Figures", "GameChoice", f"Correlation_Wealth_Risk_aversion_NH_{NH}_Normalized_{normalizeGames}")
+    plt.savefig(path)
     # Close the figure to prevent overlap
     plt.close()  
 
@@ -276,8 +259,6 @@ def viz_UV_scatter(df):
     
     df = df.loc[df['Step'] == df['Step'].max()]
 
-
-    #print(tabulate(df, headers = 'keys', tablefmt = 'psql'))
     U = df['UV'].apply(lambda x: x[0])
     V = df['UV'].apply(lambda x: x[1])
 
@@ -292,15 +273,20 @@ def viz_UV_scatter(df):
     plt.close()  
 
 
-def viz_uv(data, variable, bar_name, visualize_wealth = False):
+def viz_uv(data, variable, bar_name, visualize_wealth=False, use_median_color=True,  NH = False, normalizeGames = True):
     '''
     Input: 
         data: agent level data
+        variable: variable to visualize (e.g., risk aversion or wealth)
+        bar_name: name of the variable for labeling
+        visualize_wealth: flag to indicate whether to visualize wealth
+        use_median_color: flag to indicate whether to use median or mean for bubble color
     '''
+
     # Define the number of steps to visualize
     # Get evenly spaced time steps
-    last_timestep =  data['Step'].max()
-    time_steps = np.linspace(0, last_timestep, 8)
+    last_timestep = data['Step'].max()
+    time_steps = np.linspace(9, 90, 8)
     time_steps = time_steps.astype(int)
 
     # Create a figure with 8 subplots
@@ -313,13 +299,31 @@ def viz_uv(data, variable, bar_name, visualize_wealth = False):
         step_data = data[data['Step'] == step]
         
         if visualize_wealth:
-            # Group by UV coordinates and calculate median wealth
-            grouped_data = step_data.groupby(['UV'])[variable].median().reset_index(name=variable)
-            # Extract wealth values
-            values = grouped_data[variable]
-            # Normalize median wealth
-            values = (values - values.min()) / (values.max() - values.min())
+             # Normalize (recent) wealth first
+            step_data['normalized_' + variable] = step_data.groupby('UV')[variable].transform(
+                lambda x: (x - x.min()) / (x.max() - x.min())
+            )
+
+            # Group by UV coordinates and calculate median or mean of the normalized values
+            if use_median_color:
+                # Calculate the median of the normalized values
+                grouped_data = step_data.groupby(['UV'])['normalized_' + variable].median().reset_index(name='normalized_' + variable)
+            else:
+                # Calculate the mean of the normalized values
+                grouped_data = step_data.groupby(['UV'])['normalized_' + variable].mean().reset_index(name='normalized_' + variable)
+
+            # Extract the normalized values
+            values = grouped_data['normalized_' + variable]
+            
+
+            # Get the counts for bubble sizes
             counts = step_data.groupby('UV').size().reset_index(name='Counts')['Counts']
+
+            # Set color limits
+            vmin = 0
+            vmax = 1
+
+            #print(f"Timestep {step}: Min = {values.min()}, Max = {values.max()}")
         else:
             # Group by UV coordinates and risk aversion values and count the number of agents
             grouped_data = step_data.groupby(['UV', variable]).size().reset_index(name='Counts')
@@ -328,54 +332,64 @@ def viz_uv(data, variable, bar_name, visualize_wealth = False):
             # Determine bubble sizes based on the number of agents
             counts = grouped_data['Counts']
 
+            # Set color limits
+            vmin = 0
+            vmax = 2
+
+        
         bubble_sizes = counts * 10  # Adjust scaling factor as needed
         # Extract UV coordinates
         U = grouped_data['UV'].apply(lambda x: x[0]).tolist()
         V = grouped_data['UV'].apply(lambda x: x[1]).tolist()
-        
-        # Set colors 
+
+        # Set colors
         colors = values
-        
+
         # Determine subplot index
         row = idx // 4  # Determine row index (0 or 1)
         col = idx % 4   # Determine column index (0 to 3)
         ax = fig.add_subplot(gs[row, col])
 
-        ax.scatter(U, V, s=bubble_sizes, c=colors, cmap='viridis', alpha=0.5)  # Scatter plot with bubble sizes and risk aversion or median wealth color mapping
-        ax.set_title(f'Step {step+1}', fontsize = 18)  # Set subplot title
-        ax.set_xlabel('U', fontsize = 16)  # Set x-axis label
-        ax.set_ylabel('V', fontsize = 16)  # Set y-axis label
+        scatter = ax.scatter(U, V, s=bubble_sizes, c=colors, cmap='inferno', alpha=0.5, vmin = vmin, vmax = vmax)  # Scatter plot with bubble sizes and color mapping
+        ax.set_title(f'Step {step+1}', fontsize=22)  # Set subplot title
+        ax.set_xlabel('U', fontsize=20)  # Set x-axis label
+        ax.set_ylabel('V', fontsize=20)  # Set y-axis label
+        # Set the range for x-axis and y-axis
+        ax.set_xlim(0, 2)
+        ax.set_ylim(0, 2)
         ax.grid(True)  # Add grid
-        
- 
-        for u, v in zip(U, V):
-            ax.scatter(u, v, color='grey', s=5)  # Little dot
 
-    # Add colorbar
+
     cax = fig.add_subplot(gs[2, :])
-    cbar = plt.colorbar(ax.collections[0], cax=cax, orientation='horizontal')
+    cbar = plt.colorbar(ax.collections[0], cax=cax, orientation='horizontal', cmap = 'inferno')
     if visualize_wealth:
-        cbar.set_label(f"Normalized {bar_name}", fontsize = 16)
+        cbar.set_label(f"Normalized {bar_name}", fontsize=20)
+    else:
+        cbar.set_label(f"{bar_name}", fontsize=20)
 
-    cbar.set_label(bar_name, fontsize = 16)
+    path = utils.make_path("Figures", "GameChoice", f"Coevolution_UV_{bar_name}_NH_{NH}_Normalized_{normalizeGames}")
 
-    plt.suptitle(f"UV-Space and {bar_name} at Different Time-Steps", fontsize = params.titlesize)
-    path = utils.make_path("Figures", "GameChoice", f"Coevolution_UV_{bar_name}")
-
+    plt.suptitle(f"UV-Space and {bar_name} at Different Time-Steps", fontsize=22)
     plt.tight_layout()
     plt.savefig(path)
     plt.close()
 
-def viz_coevolution_UV_risk(data):
-    viz_uv(data, "Player Risk Aversion", "Risk Aversion", visualize_wealth = False)
+def viz_coevolution_UV_risk(data, NH = False, normalizeGames = True):
+    viz_uv(data, "Player Risk Aversion", "Risk Aversion", visualize_wealth = False, NH = NH, normalizeGames =  normalizeGames)
     
-def viz_UV_Wealth(data):
-    viz_uv(data, "Wealth", "Median Recent Wealth", visualize_wealth = True)
+def viz_UV_Median_Wealth(data, NH = False, normalizeGames = True):
+    viz_uv(data, "Wealth", "Median Wealth", visualize_wealth = True,  NH = NH, normalizeGames =  normalizeGames)
 
-def viz_UV_Recent_Wealth(data):
-    viz_uv(data, "Recent Wealth", "Recent Wealth", visualize_wealth = True)
+def viz_UV_Median_Recent_Wealth(data, NH = False, normalizeGames = True):
+    viz_uv(data, "Recent Wealth", "Median Recent Wealth", visualize_wealth = True,  NH = NH, normalizeGames =  normalizeGames)
 
-def viz_UV_heatmap(df_agent, df_model, NH=False, only_start = False):
+def viz_UV_Mean_Wealth(data, NH = False, normalizeGames = True):
+    viz_uv(data, "Wealth", "Mean Wealth", visualize_wealth = True, use_median_color=False,  NH = NH, normalizeGames =  normalizeGames)
+
+def viz_UV_Mean_Recent_Wealth(data, NH = False, normalizeGames = True):
+    viz_uv(data, "Recent Wealth", "Mean Recent Wealth", visualize_wealth = True, use_median_color=False,  NH = NH, normalizeGames =  normalizeGames)
+
+def viz_UV_heatmap(df_agent, df_model, NH=False, only_start = False, normalizeGames = True):
 
     df_agent_r0 = df_agent[df_agent['Round'] == 0]
     df_game_info_r0 = df_model[df_model['Round'] == 0][['Step', 'Game data']]
@@ -399,8 +413,6 @@ def viz_UV_heatmap(df_agent, df_model, NH=False, only_start = False):
         V_step = df_agentPlot['UV'].apply(lambda x: x[1]).tolist()
         all_U_values.append(U_step)
         all_V_values.append(V_step)
-
-        #print(tabulate(df, headers = 'keys', tablefmt = 'psql'))
 
 
     # Flatten the lists to get values for all steps
@@ -434,6 +446,7 @@ def viz_UV_heatmap(df_agent, df_model, NH=False, only_start = False):
         ax.set_xlabel("U")
         ax.set_ylabel("V")
         ax.set_title("Step: {}".format(step+1))
+        plt.tick_params(axis='both', which='major', labelsize=16)
 
         # Overlay scatter plot of individual data points
         ax.scatter(U_step, V_step, color='black', s=10, alpha=0.5)
@@ -466,17 +479,11 @@ def viz_UV_heatmap(df_agent, df_model, NH=False, only_start = False):
     # Adjust layout to prevent clipping of titles and colorbar
     plt.tight_layout(rect=[0, 0, 0.91, 1])
 
-
-    if NH:
-        path = utils.make_path("Figures", "GameChoice", f"UV_heatmap_NH_only_start_{only_start}")
-    else:
-        path = utils.make_path("Figures", "GameChoice", f"UV_heatmap_only_start_{only_start}")
+    path = utils.make_path("Figures", "GameChoice", f"UV_heatmap_only_start_{only_start}_NH_{NH}_Normalized_{normalizeGames}")
     plt.savefig(path)
     plt.close()
 
 def viz_measure_over_time(df, measure):
-
-    #print(tabulate(df, headers = 'keys', tablefmt = 'psql'))
     
     df_grouped = df.groupby(['Step', 'Round'])[measure].mean().reset_index()
 
@@ -498,7 +505,7 @@ def viz_measure_over_time(df, measure):
     plt.close()
 
 
-def viz_gini_over_time(data):
+def viz_gini_over_time(data, NH = False, normalizeGames = True):
     """
     Plot Gini coefficient of wealth and recent wealth over time with 95% confidence interval.
 
@@ -553,9 +560,9 @@ def viz_gini_over_time(data):
     
 
     # Adjust layout and save plot
-    plt.suptitle("Gini Coëfficient over Time", fontsize = 22)
+    plt.suptitle("Gini Coefficient over Time", fontsize = 22)
     plt.tight_layout()
-    path = utils.make_path("Figures", "GameChoice", "Gini_Coefficients_over_Time")
+    path = utils.make_path("Figures", "GameChoice", f"Gini_Coefficients_over_TimeNH_{NH}_Normalized_{normalizeGames}")
     plt.savefig(path)
     plt.close()
 
@@ -600,19 +607,24 @@ def viz_effect_of_risk_and_rationality_on_QRE(df):
     # Create a figure and axis objects
     fig, axes = plt.subplots(1, len(x_vars), figsize=(15, 5))
 
+
     # Loop through each pair of x and y variables
     for i, x_var in enumerate(x_vars):
         # Plot scatter plot with specific x and y variables, color, and axes
         sns.scatterplot(x=x_var, y=y_var, data=df, ax=axes[i], color=colors[i])
         # Plot regression line on the same plot
-        sns.regplot(x=x_var, y=y_var, data=df, ax=axes[i], scatter=False, color=colors[i])
+        sns.regplot(x=x_var, y=y_var, data=df, ax=axes[i], scatter=False, color=colors[i], label="With etaA = 0")
+        if x_var == 'etaA':
+            df = df[df['etaA'] != 0]
+            sns.regplot(x=x_var, y=y_var, data=df, ax=axes[i], scatter=False, color='green', label="Without etaA = 0")
+            axes[i].legend(fontsize = 14)
         # Set x and y labels
         axes[i].set_xlabel(x_names[i], fontsize=params.labelsize)
         axes[i].set_ylabel(y_name, fontsize=params.labelsize)
 
 
     # Set title for the entire figure
-    fig.suptitle(f'Scatter & Regression Plot of {y_name} vs Risk and Rationality Parameters', fontsize=params.titlesize)
+    fig.suptitle(f'Effect of Risk and Rationality Parameters on {y_name}', fontsize=28)
 
     # Adjust tick font size
     plt.tick_params(axis='both', which='major', labelsize=params.ticksize)
@@ -621,7 +633,7 @@ def viz_effect_of_risk_and_rationality_on_QRE(df):
     plt.tight_layout()
 
     # Save the plot
-    path = utils.make_path("Figures", "GameChoice", "effect_of_risk_rationality_on_QRE_regression_scatter")
+    path = utils.make_path("Figures", "GameChoice", f"effect_of_risk_rationality_on_QRE_regression_scatter_etaA")
     plt.savefig(path)
     plt.close()
 
@@ -652,5 +664,47 @@ def analyze_wealth_distribution(data):
 
     # Save the figure
     path = utils.make_path("Figures", "GameChoice", "Wealth_Distribution")
+    plt.savefig(path)
+    plt.close()
+
+
+
+def analyze_game_switches(agent_data):
+    # Initialize dictionary to store game switches for each agent
+    game_switches = {}
+
+    # Iterate over each round and step
+    for round_num in agent_data['Round'].unique():
+        round_data = agent_data[agent_data['Round'] == round_num]
+        for step in range(1, round_data['Step'].max() + 1):
+            current_step_data = round_data[round_data['Step'] == step]
+            previous_step_data = round_data[round_data['Step'] == step - 1]
+
+            # Iterate over agents at the current step
+            for player, current_agent in current_step_data.iterrows():
+                # Get the previous agent data based on Player ID
+                previous_agent = previous_step_data[previous_step_data['Players'] == current_agent['Players']]
+
+                # Check if the agent exists in the previous step and if the game has changed
+                if not previous_agent.empty and current_agent['UV'] != previous_agent.iloc[0]['UV']:
+                    # Increment game switch count for the current agent
+                    if player in game_switches:
+                        game_switches[player] += 1
+                    else:
+                        game_switches[player] = 1
+
+    # Convert the dictionary to a DataFrame for easier analysis and visualization
+    game_switches_df = pd.DataFrame.from_dict(game_switches, orient='index', columns=['GameSwitches'])
+
+    # Plot the frequency of game switches
+    plt.figure(figsize=(10, 6))
+    game_switches_df['GameSwitches'].plot(kind='bar', color='skyblue')
+    plt.title('Frequency of Game Switches for Agents')
+    plt.xlabel('Agent ID')
+    plt.ylabel('Number of Game Switches')
+    plt.xticks(rotation=45)
+    plt.grid(axis='y', linestyle='--', alpha=0.7)
+    plt.tight_layout()
+    path = utils.make_path("Figures", "GameChoice", "Changing_Games")
     plt.savefig(path)
     plt.close()

@@ -1,3 +1,10 @@
+'''
+vizNetworks.py
+This file contains all the code for vizualizations regarding the network dynamics
+'''
+
+
+# External libraries
 from chart_studio import plotly as py 
 import plotly.figure_factory as ff
 import numpy as np
@@ -15,14 +22,22 @@ import seaborn as sns
 import textwrap
 import ast
 import json
+import scienceplots
 
-
+# Internal
 import utils
 
 params = utils.get_config()
 
+# Set the 'science' and 'ieee' styles for all plots
+plt.style.use(['science', 'ieee'])
 
 def viz_network_measures_over_timesteps(df):
+    '''
+    Description: Visualizes the network measures over timesteps.
+    Inputs: df - DataFrame, containing the data.
+    Outputs: None
+    '''
     # Get steps, used networks, and used measures from dataframe
     steps = np.arange(df['Step'].nunique())
     networks = df['Network'].unique()
@@ -67,8 +82,12 @@ def viz_network_measures_over_timesteps(df):
 
 
 def viz_effect_variable_on_network_measures(df, variable):
-
-
+    '''
+    Description: Visualizes the effect of a variable on network measures.
+    Inputs: df - DataFrame, containing the data,
+            variable - str, the variable to analyze.
+    Outputs: None
+    '''
     # Get steps, used networks and used measures from dataframe
     steps = np.arange(df['Step'].nunique())
     networks = df['Network'].unique()
@@ -78,7 +97,6 @@ def viz_effect_variable_on_network_measures(df, variable):
     mean_measures = list(df.loc[:, df.columns.str.contains('M:')].columns)
 
     for measure in mean_measures:
-     
         fig, axs = plt.subplots(len(networks), sharex='col', sharey='col', squeeze=False)
         for row in range(len(networks)):
             df_network = df[df['Network'] == networks[row]]
@@ -95,30 +113,37 @@ def viz_effect_variable_on_network_measures(df, variable):
             axs[row, 0].legend()
 
         # Set common x label
-        fig.text(0.5, 0.04, 'Step', ha='center')
+        fig.text(0.5, 0.04, 'Step', ha='center', fontsize = 20)
+
+        plt.tick_params(axis='both', which='major', labelsize=16)  
 
         # Set y labels
         for ax in axs:
-            ax[0].set_ylabel(measure.replace("M:", ""))
+            ax[0].set_ylabel(measure.replace("M:", ""), fontsize = 20)
 
         # Make clear which network belongs to which graph
         for ax, col in zip(axs, networks):
-            ax[0].set_title(col)
+            ax[0].set_title(col, fontsize = 20)
 
         # Adjust layout to prevent overlapping y-axis labels
         plt.subplots_adjust(wspace=0.3, hspace=0.8)
 
         # displaying the title
-        fig.suptitle(f"Effect of {variable} on {measure.replace('M:', '')}")
+        fig.suptitle(f"Effect of {variable} on {measure.replace('M:', '')}", fontsize = 22)
         path = utils.make_path("Figures", "Networks", f"Effect_of_{variable}_on_{measure.replace('M:', '')}")
         fig.tight_layout()
         plt.savefig(path)
         plt.close()
 
 
-
-
 def viz_histogram_over_time(df, measure, bins=10):
+    '''
+    Description: Visualizes the histogram of a measure over time.
+    Inputs: df - DataFrame, containing the data,
+            measure - str, the measure to plot,
+            bins - int, number of bins for the histogram (default=10).
+    Outputs: None
+    '''
     stepsPlot = [*range(int(params.n_steps / 4) - 1, params.n_steps + 1, int(params.n_steps / 4))]
 
     # Create a figure with four subplots for plots
@@ -135,7 +160,6 @@ def viz_histogram_over_time(df, measure, bins=10):
         axs[idx].set_ylabel('Frequency')
         axs[idx].set_title(f'Step {step}')
 
-
     # Adjust layout to prevent clipping of labels
     fig.tight_layout()
 
@@ -146,6 +170,13 @@ def viz_histogram_over_time(df, measure, bins=10):
     
 
 def viz_Degree_Distr(df, measure, bins=10):
+    '''
+    Description: Visualizes the degree distribution.
+    Inputs: df - DataFrame, containing the data,
+            measure - str, the measure to plot,
+            bins - int, number of bins for the histogram (default=10).
+    Outputs: None
+    '''
     stepsPlot = [*range(int(params.n_steps / 4) - 1, params.n_steps + 1, int(params.n_steps / 4))]
 
     # Create a figure with four subplots for plots
@@ -161,13 +192,10 @@ def viz_Degree_Distr(df, measure, bins=10):
         data = utils.string_to_list(subset_data['Degree Distr'])
         combined_degree_distribution.extend(data)
 
-
         axs[idx].hist(combined_degree_distribution, edgecolor='black', bins=bins)
         axs[idx].set_xlabel(measure)
         axs[idx].set_ylabel('Frequency')
         axs[idx].set_title(f'Step {step}')
-
-
 
     # Adjust layout to prevent clipping of labels
     fig.tight_layout()
@@ -178,8 +206,12 @@ def viz_Degree_Distr(df, measure, bins=10):
     plt.close()
 
 
-
 def analyze_wealth_distribution_by_game_group(data):
+    '''
+    Description: Analyzes the wealth distribution by game group.
+    Inputs: data - DataFrame, containing the data.
+    Outputs: None
+    '''
     # Normalize wealth and recent wealth
     data = data[data['Step'] == data['Step'].max()]
     data['Normalized Wealth'] = data['Wealth'] / data['Wealth'].sum()
